@@ -1,0 +1,281 @@
+---
+name: scroll-experience
+preamble-tier: 4
+version: 1.0.0
+description: |
+  Immersive scroll-driven experiences for the Factorial webpage. Parallax storytelling,
+  pinned narrative sections, scroll-choreographed content. Use when building a page that
+  tells a story through scroll — product showcase, feature reveal, brand narrative, or
+  any section that moves beyond static layout.
+allowed-tools:
+  - Read
+  - Edit
+  - Write
+  - Bash
+triggers:
+  - scroll experience
+  - scroll story
+  - parallax section
+  - scroll narrative
+  - pinned panels
+  - scroll choreography
+  - immersive scroll
+  - apple-style scroll
+
+---
+
+{{PREAMBLE}}
+
+# Scroll Experience
+
+Build scroll-driven narrative sections for the Factorial webpage (`webpage/`).
+The goal: content that feels purposeful in motion — each scroll beat reveals
+something meaningful, not just something moving.
+
+**Library selection:**
+
+| Need | Use |
+|------|-----|
+| Scroll-linked scrub, pin, snap | GSAP ScrollTrigger |
+| Component enter/exit, stagger | Framer Motion `whileInView` |
+| Smooth scroll momentum | Lenis |
+| Parallax only, no pin | Framer Motion `useScroll` + `useTransform` |
+| CSS-only reveals | `@keyframes` + `animation-timeline: scroll()` (Chrome 115+) |
+
+---
+
+## Content First
+
+Before writing any animation code, answer:
+1. **What is the key message?** Must be readable without scrolling.
+2. **What story does scroll reveal?** Map out 3–5 beats.
+3. **What is visible on first paint?** Nothing important should be hidden behind scroll.
+
+Story beat structure:
+- **Hook** — immediately clear what this section is about
+- **Context** — why it matters
+- **Journey** — the scroll-driven reveal
+- **Climax** — the payoff (strongest visual moment)
+- **Resolution** — CTA or transition to next section
+
+---
+
+## Parallax
+
+### Simple parallax with Framer Motion
+
+```tsx
+'use client'
+import { useRef } from 'react'
+import { motion, useScroll, useTransform } from 'framer-motion'
+
+export function ParallaxSection() {
+  const ref = useRef<HTMLDivElement>(null)
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ['start end', 'end start'],
+  })
+
+  // Layer speeds — background slowest, foreground fastest
+  const bgY = useTransform(scrollYProgress, [0, 1], ['0%', '-20%'])   // 0.2x
+  const midY = useTransform(scrollYProgress, [0, 1], ['0%', '-50%'])  // 0.5x
+  const fgY = useTransform(scrollYProgress, [0, 1], ['0%', '-80%'])   // 0.8x
+
+  return (
+    <div ref={ref} className="relative overflow-hidden h-[600px]">
+      <motion.div className="absolute inset-0 bg-layer" style={{ y: bgY }} />
+      <motion.div className="absolute inset-0 mid-layer" style={{ y: midY }} />
+      <motion.div className="relative z-10 fg-layer" style={{ y: fgY }} />
+    </div>
+  )
+}
+```
+
+### Parallax layer speed guide
+
+| Layer | Speed multiplier | Y range (for 600px section) |
+|-------|-----------------|------------------------------|
+| Background | 0.2× | `'0%'` → `'-20%'` |
+| Midground | 0.5× | `'0%'` → `'-50%'` |
+| Text/foreground | 1.0× | no parallax (stays with scroll) |
+| Foreground accent | 0.8× | `'0%'` → `'-80%'` |
+
+Never use > 1.0× speed — content flies off screen.
+
+---
+
+## Pinned Narrative (GSAP ScrollTrigger)
+
+For multi-beat stories that need precise control:
+
+```tsx
+'use client'
+import { useEffect, useRef } from 'react'
+import gsap from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
+
+gsap.registerPlugin(ScrollTrigger)
+
+export function PinnedNarrative() {
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: containerRef.current,
+          pin: true,
+          start: 'top top',
+          end: '+=2000',    // 2000px of scroll for the full story
+          scrub: 0.8,       // slight lag feels physical
+        },
+      })
+
+      // Beat 1: headline appears
+      tl.from('.beat-1', { opacity: 0, y: 40, duration: 0.3 })
+      // Beat 2: supporting content slides in
+      tl.from('.beat-2', { opacity: 0, x: -60, duration: 0.3 }, '+=0.1')
+      // Beat 3: payoff visual
+      tl.from('.beat-3', { opacity: 0, scale: 0.9, duration: 0.4 }, '+=0.1')
+      // Beat 4: CTA
+      tl.from('.beat-4', { opacity: 0, y: 20, duration: 0.2 }, '+=0.2')
+    }, containerRef)
+
+    return () => ctx.revert()
+  }, [])
+
+  return (
+    <div ref={containerRef} className="relative min-h-screen">
+      {/* content */}
+    </div>
+  )
+}
+```
+
+---
+
+## Scroll-Triggered Stagger Grid
+
+```tsx
+'use client'
+import { motion } from 'framer-motion'
+
+const container = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.08 } },
+}
+const card = {
+  hidden: { opacity: 0, y: 24 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.23, 1, 0.32, 1] } },
+}
+
+export function FeatureGrid({ features }: { features: Feature[] }) {
+  return (
+    <motion.div
+      className="grid grid-cols-3 gap-8"
+      variants={container}
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, margin: '-100px' }}
+    >
+      {features.map((f) => (
+        <motion.div key={f.id} variants={card}>
+          {/* card content */}
+        </motion.div>
+      ))}
+    </motion.div>
+  )
+}
+```
+
+---
+
+## Performance Rules
+
+These are not optional — they prevent jank on low-end devices:
+
+1. **Only animate `transform` and `opacity`** — never `width`, `height`, `top`, `left`, `margin`
+2. **`will-change: transform`** — add to elements with heavy scroll animation. Remove after animation completes.
+3. **Test on real mobile** — Chrome DevTools throttle is misleading. Test on a physical iPhone.
+4. **No more than 3 parallax layers per viewport** — each layer is a composited layer
+5. **Reduce intensity on mobile:**
+   ```tsx
+   const isMobile = window.matchMedia('(max-width: 768px)').matches
+   const bgY = useTransform(scrollYProgress, [0, 1], ['0%', isMobile ? '-10%' : '-20%'])
+   ```
+
+---
+
+## Reduced Motion
+
+```tsx
+'use client'
+import { useReducedMotion } from 'framer-motion'
+
+export function AnimatedSection() {
+  const prefersReduced = useReducedMotion()
+
+  if (prefersReduced) {
+    // Render static version — no parallax, no scroll animation
+    return <StaticSection />
+  }
+
+  return <AnimatedVersion />
+}
+```
+
+Or with GSAP:
+```ts
+const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+if (!prefersReduced) {
+  // setup scroll animations
+}
+```
+
+---
+
+## Smooth Scroll with Lenis
+
+Lenis adds scroll momentum without hijacking native scroll.
+Only add it if the design explicitly calls for smooth scroll.
+
+```tsx
+'use client'
+import { useEffect } from 'react'
+import Lenis from '@studio-freight/lenis'
+
+export function SmoothScrollProvider({ children }: { children: React.ReactNode }) {
+  useEffect(() => {
+    const lenis = new Lenis({ duration: 1.2, easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)) })
+
+    function raf(time: number) {
+      lenis.raf(time)
+      requestAnimationFrame(raf)
+    }
+    requestAnimationFrame(raf)
+
+    return () => lenis.destroy()
+  }, [])
+
+  return <>{children}</>
+}
+```
+
+If using Lenis + GSAP ScrollTrigger together, you must sync them:
+```ts
+lenis.on('scroll', ScrollTrigger.update)
+gsap.ticker.add((time) => { lenis.raf(time * 1000) })
+gsap.ticker.lagSmoothing(0)
+```
+
+---
+
+## Anti-patterns
+
+| Anti-pattern | Why it's wrong | Fix |
+|---|---|------|
+| Animation hides content on mobile | Users with JS disabled / slow parse see nothing | Always use `initial` values that show content by default, animate as enhancement |
+| Parallax on body/document scroll + iOS | Laggy on Safari — iOS doesn't fire scroll events smoothly | Use GSAP + Lenis or CSS `animation-timeline` |
+| Pinning tall mobile sections | 2000px of pin on mobile = user trapped | Reduce or disable pin on mobile |
+| Loop animations in scroll context | Fights scroll | No loop — animation tied to scroll position only |
+| `overflow: hidden` on parallax container without height | Clips elements before they animate in | Set explicit `height` or `min-height` |

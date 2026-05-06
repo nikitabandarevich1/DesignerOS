@@ -1,0 +1,293 @@
+---
+name: gsap-scrolltrigger
+preamble-tier: 4
+version: 1.0.0
+description: |
+  GSAP ScrollTrigger for the Factorial webpage. Scroll-linked animations, pinning,
+  scrub, horizontal scroll containers, and stagger reveals. Use when building
+  scroll-driven narratives, parallax sections, pinned panels, or anything that
+  needs precise control over scroll position.
+allowed-tools:
+  - Read
+  - Edit
+  - Write
+  - Bash
+triggers:
+  - scrolltrigger
+  - scroll animation
+  - pin this section
+  - parallax
+  - scrub
+  - scroll-driven
+  - horizontal scroll
+  - scroll reveal with gsap
+
+---
+
+{{PREAMBLE}}
+
+# GSAP ScrollTrigger
+
+Use GSAP + ScrollTrigger for scroll-linked animation in the Factorial webpage (`webpage/`).
+Framer Motion's `useScroll` is fine for simple opacity/translate reveals — use ScrollTrigger
+when you need: pinning, scrub, snapping, containerAnimation (fake horizontal scroll), or
+coordinated multi-element sequences.
+
+---
+
+## Setup
+
+```tsx
+'use client'
+import { useEffect, useRef } from 'react'
+import gsap from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
+
+// Register once — idempotent, safe to call in every component
+gsap.registerPlugin(ScrollTrigger)
+```
+
+---
+
+## Core Concepts
+
+### trigger / start / end
+
+```ts
+ScrollTrigger.create({
+  trigger: '.section',     // element that drives the animation
+  start: 'top 80%',        // "triggerEdge viewportEdge"
+  end: 'bottom 20%',       // optional: when to end
+  toggleActions: 'play none none reverse',
+  // play | pause | resume | reverse | restart | reset | complete | none
+  // order: onEnter onLeave onEnterBack onLeaveBack
+})
+```
+
+**`start`/`end` format:** `"triggerPosition viewportPosition"`
+- `"top center"` — trigger's top hits viewport center
+- `"top 80%"` — trigger's top hits 80% down viewport
+- `"+=200"` — 200px after default start
+- `"top top"` — trigger's top hits viewport top (used for pinning)
+
+### scrub
+
+```ts
+gsap.to('.element', {
+  y: -100,
+  scrollTrigger: {
+    trigger: '.section',
+    start: 'top bottom',
+    end: 'bottom top',
+    scrub: true,      // smooth scrub, tied directly to scroll
+    scrub: 0.5,       // lagged scrub (0.5s to catch up) — feels more physical
+  }
+})
+```
+
+### pin
+
+```ts
+ScrollTrigger.create({
+  trigger: '.panel',
+  pin: true,              // pins .panel itself
+  start: 'top top',       // pin starts when top of panel hits top of viewport
+  end: '+=500',           // stays pinned for 500px of scroll
+  pinSpacing: true,       // (default) adds space after pinned element
+})
+```
+
+**Gotcha:** Don't animate the pinned element itself — animate its children.
+The pinned element needs stable positioning.
+
+---
+
+## Patterns
+
+### Scroll reveal (stagger list)
+
+```tsx
+useEffect(() => {
+  const items = gsap.utils.toArray<HTMLElement>('.list-item')
+  
+  ScrollTrigger.batch(items, {
+    onEnter: (batch) =>
+      gsap.from(batch, {
+        opacity: 0,
+        y: 30,
+        duration: 0.6,
+        stagger: 0.08,
+        ease: 'power2.out',
+      }),
+    start: 'top 85%',
+  })
+
+  return () => ScrollTrigger.getAll().forEach((t) => t.kill())
+}, [])
+```
+
+### Pinned section with scrubbed content
+
+```tsx
+useEffect(() => {
+  const tl = gsap.timeline({
+    scrollTrigger: {
+      trigger: '.pinned-section',
+      pin: true,
+      start: 'top top',
+      end: '+=1200',
+      scrub: 0.5,
+    },
+  })
+
+  tl.from('.headline', { opacity: 0, y: 40 })
+    .from('.subtext', { opacity: 0, y: 20 }, '-=0.3')
+    .to('.card', { x: -200, opacity: 0 }, '+=0.2')
+
+  return () => tl.scrollTrigger?.kill()
+}, [])
+```
+
+### Fake horizontal scroll (containerAnimation)
+
+```tsx
+useEffect(() => {
+  const container = containerRef.current
+  const sections = sectionsRef.current
+
+  const totalWidth = sections.scrollWidth - window.innerWidth
+
+  // Horizontal tween — MUST use ease: 'none'
+  const tween = gsap.to(sections, {
+    x: -totalWidth,
+    ease: 'none',  // REQUIRED with containerAnimation
+    duration: 1,
+  })
+
+  ScrollTrigger.create({
+    trigger: container,
+    pin: true,
+    start: 'top top',
+    end: `+=${totalWidth}`,
+    scrub: 1,
+    animation: tween,
+  })
+
+  // Any nested ScrollTriggers use containerAnimation
+  gsap.from('.horizontal-card', {
+    opacity: 0,
+    scrollTrigger: {
+      trigger: '.horizontal-card',
+      containerAnimation: tween,  // parent scroll context
+      start: 'left 80%',
+      toggleActions: 'play none none reverse',
+    },
+  })
+
+  return () => ScrollTrigger.getAll().forEach((t) => t.kill())
+}, [])
+```
+
+### Parallax layers
+
+```tsx
+useEffect(() => {
+  // background slower, foreground faster
+  gsap.to('.bg-layer', {
+    y: -60,  // moves less (0.2x scroll speed feel)
+    ease: 'none',
+    scrollTrigger: {
+      trigger: '.section',
+      start: 'top bottom',
+      end: 'bottom top',
+      scrub: true,
+    },
+  })
+
+  gsap.to('.fg-layer', {
+    y: -180,  // moves more (0.6x scroll speed feel)
+    ease: 'none',
+    scrollTrigger: {
+      trigger: '.section',
+      start: 'top bottom',
+      end: 'bottom top',
+      scrub: true,
+    },
+  })
+
+  return () => ScrollTrigger.getAll().forEach((t) => t.kill())
+}, [])
+```
+
+---
+
+## Cleanup (mandatory in React)
+
+Always clean up — stale ScrollTriggers cause memory leaks and broken behavior on
+hot reload in Next.js.
+
+```tsx
+// Option A: kill all in component
+useEffect(() => {
+  // ... setup ...
+  return () => {
+    ScrollTrigger.getAll().forEach((t) => t.kill())
+  }
+}, [])
+
+// Option B: use @gsap/react hook (cleaner)
+import { useGSAP } from '@gsap/react'
+
+useGSAP(() => {
+  // all ScrollTriggers created here auto-clean on unmount
+  ScrollTrigger.create({ ... })
+}, { scope: containerRef })
+```
+
+---
+
+## `ScrollTrigger.refresh()`
+
+Call after DOM changes that affect scroll height:
+- After images load
+- After accordion expand/collapse
+- After font swap
+
+```ts
+ScrollTrigger.refresh()
+```
+
+Never call `refresh()` inside `useEffect` with frequent dependencies — it's expensive.
+Use it once after async content resolves.
+
+---
+
+## Reduced Motion
+
+```tsx
+useEffect(() => {
+  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+  if (prefersReduced) {
+    // Skip parallax, large transforms, continuous motion
+    // Optionally: instant show without animation
+    gsap.set('.animated', { opacity: 1, y: 0 })
+    return
+  }
+
+  // ... full animation setup ...
+}, [])
+```
+
+---
+
+## Common Mistakes
+
+| Mistake | Fix |
+|---------|-----|
+| `ease: 'power2.out'` on scrubbed tween | Use `ease: 'none'` — easing + scrub fights itself |
+| Animating pinned element directly | Animate children inside the pinned element |
+| Not calling `kill()` on unmount | Always clean up in `useEffect` return |
+| `ScrollTrigger.refresh()` in render | Only call once, after layout-changing async ops |
+| `containerAnimation` without `ease: 'none'` | Required — breaks horizontal sync otherwise |
+| Creating triggers before DOM ready | Put inside `useEffect`, not render |

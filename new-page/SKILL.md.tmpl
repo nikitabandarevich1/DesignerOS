@@ -1,0 +1,224 @@
+---
+name: new-page
+preamble-tier: 3
+version: 1.0.0
+description: |
+  End-to-end workflow for building a new page or landing page on the Factorial webpage.
+  Chains scope → route setup → sections → SEO/i18n → design polish → QA with a
+  combined report. Use when adding any new route to the webpage project.
+allowed-tools:
+  - Read
+  - Edit
+  - Write
+  - Bash
+triggers:
+  - new page
+  - landing page
+  - campaign page
+  - new route
+  - build a page
+  - create a page
+
+---
+
+{{PREAMBLE}}
+
+# /new-page — New Page Workflow
+
+Full workflow for a new page on the Factorial webpage (`webpage/`).
+You drive. The user can skip any step.
+
+---
+
+## Present the Step Plan
+
+```
+/new-page workflow
+
+  [1] Brief confirmation (URL, purpose, sections, locales)
+  [2] Route setup (route group, layout, page.tsx)
+  [3] Sections planning (which CMS sections, which need building)
+  [4] SEO & i18n (metadata, locale routing, sitemap)
+  [5] Design polish review
+  [6] QA (3 breakpoints × 2 locales)
+  [7] Combined report
+
+Type a step number to skip, or press Enter to start with step 1.
+```
+
+---
+
+## Step 1 — Brief Confirmation
+
+Ask in a single block:
+
+1. **URL / slug** — what will the path be? (e.g. `/integrations/xero`, `/solutions/retail`)
+2. **Purpose** — what does this page do? (SEO landing, campaign, feature showcase, etc.)
+3. **Locales** — which TLDs need this page? (en-US, es-ES, de-DE, fr-FR…)
+4. **Sections** — what content sections does it need? (hero, feature grid, testimonials, CTA, etc.)
+5. **Route group** — is it a standard marketing page `(full-layout)`, a demo flow `(demo)`, or a split-intention page `(split-intention)`?
+6. **ISR** — any special revalidation requirement, or use default 1800s?
+
+Produce a one-paragraph summary and confirm.
+
+---
+
+## Step 2 — Route Setup
+
+Follow the `/webpage-page` patterns:
+
+**File:** `webpage/app/[locale]/(route-group)/[slug]/page.tsx`
+
+```tsx
+// Always async server component — NEVER 'use client'
+import type { AppPageProps } from '@/app/[locale]/types/pageProps'
+
+export default async function Page(props: AppPageProps) {
+  const { locale } = await props.params
+  const tld = findTldByLocale(locale)
+  if (!tld) notFound()
+
+  // ... fetch DatoCMS data ...
+
+  return <PageContent ... />
+}
+
+export const revalidate = 1800  // default — override only if needed
+```
+
+**Checklist:**
+- [ ] `await props.params` and `await props.searchParams` (Next.js 15 Promises)
+- [ ] `findTldByLocale(locale)` + `notFound()` guard for unsupported locales
+- [ ] `generateMetadata` export with title, description, canonical URL
+- [ ] `generateStaticParams` if page has dynamic segments
+- [ ] `commonPageProps(locale)` passed to client components that need it
+- [ ] Page added to sitemap (check `webpage/app/sitemap.ts` or equivalent)
+
+---
+
+## Step 3 — Sections Planning
+
+List all sections the page needs. For each:
+
+| Section | Exists? | Action |
+|---------|---------|--------|
+| Hero | ✅ `HeroA` | Use existing |
+| Feature grid | ✅ `FeatureGrid` | Use existing |
+| Testimonials | ❌ | Run `/new-section` |
+| CTA banner | ✅ `CtaBanner` | Use existing |
+
+For sections that need building, offer to run `/new-section` inline for each one
+before proceeding to QA.
+
+---
+
+## Step 4 — SEO & i18n
+
+**Metadata:**
+```tsx
+export async function generateMetadata(props: AppPageProps): Promise<Metadata> {
+  const { locale } = await props.params
+  return {
+    title: '[Page Title] | Factorial',
+    description: '[150 char description]',
+    alternates: {
+      canonical: `https://factorialhr.com/[slug]`,
+      languages: { /* hreflang entries for each TLD */ }
+    }
+  }
+}
+```
+
+**i18n checklist:**
+- [ ] All copy goes through `intl.formatMessage()` — no raw strings in JSX
+- [ ] Server-side: `getImperativeIntl(tld)` for data fetching layer
+- [ ] Spanish copy tested — ~20% longer, check all text containers
+- [ ] If copy is bulk/campaign (not going through Crowdin): use dictionary pattern
+
+**Locale routing:**
+- [ ] Page only renders for supported TLDs — `notFound()` guard in place
+- [ ] URL structure consistent with existing page conventions
+
+---
+
+## Step 5 — Design Polish Review
+
+Apply the `/design-engineer` lens. Check:
+
+**Above-the-fold (first paint):**
+- Is the key message immediately clear without scrolling?
+- Hero enters with appropriate animation (word stagger, or fade — not both)
+- CLS: images have explicit width/height or use `fill` with sized container
+
+**Scroll flow:**
+- Natural reading order — does the page tell a story top to bottom?
+- No more than 3 animated sections — animation should guide, not overwhelm
+- Consistent section spacing (check rhythm, not just individual sections)
+
+**CTAs:**
+- Primary CTA uses `radical` color tokens
+- Never more than 2 CTAs visible at once
+- Sticky CTA (if present) doesn't obscure content on mobile
+
+**Output:**
+
+| Before | After | Why |
+|--------|-------|-----|
+| ... | ... | ... |
+
+---
+
+## Step 6 — QA
+
+Test matrix:
+
+| | 375px | 768px | 1440px |
+|---|---|---|---|
+| **en-US** | ☐ | ☐ | ☐ |
+| **es-ES** | ☐ | ☐ | ☐ |
+
+Additional checks:
+- [ ] Page loads without JS errors
+- [ ] `<title>` and meta description correct in page source
+- [ ] Canonical URL correct
+- [ ] All images load with correct alt text
+- [ ] All CTA links point to correct destinations
+- [ ] No layout shift on image load (check with throttled network)
+- [ ] Dark/reduced-motion variants look correct
+
+URLs:
+`https://webpage-{tld}.local.factorial.dev/[slug]`
+(Replace `{tld}` with `us`, `es`, `de` etc.)
+
+---
+
+## Step 7 — Combined Report
+
+```markdown
+## /new-page Report — [Page name]
+
+### Summary
+- ✅ Built: [route, sections, locales]
+- ⚠️ Watch: [anything to monitor]
+- 📋 Content needed: [any DatoCMS content to fill before publishing]
+
+### Route
+[file path, route group, ISR setting]
+
+### Sections
+[table from step 3 — what was built vs. reused]
+
+### SEO
+[metadata summary, hreflang coverage]
+
+### Design Notes
+[review table from step 5]
+
+### QA Results
+[breakpoint/locale matrix]
+
+### Open Items
+[deferred work, follow-up needed]
+```
+
+Save to `~/.designeros/projects/<page-slug>/report.md`

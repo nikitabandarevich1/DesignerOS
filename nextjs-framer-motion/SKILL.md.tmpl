@@ -1,0 +1,271 @@
+---
+name: nextjs-framer-motion
+preamble-tier: 4
+version: 1.0.0
+description: |
+  Framer Motion animations in Next.js 15 App Router for the Factorial webpage.
+  Covers motion primitives, variants, AnimatePresence, layout animations, scroll
+  reveals, and server/client boundaries. Use when adding React animation with
+  Framer Motion to webpage/ components.
+allowed-tools:
+  - Read
+  - Edit
+  - Write
+triggers:
+  - framer motion
+  - animate this
+  - motion component
+  - AnimatePresence
+  - layout animation
+  - whileInView
+  - exit animation
+  - page transition
+
+---
+
+{{PREAMBLE}}
+
+# Framer Motion in Next.js 15
+
+Use Framer Motion for React-component-level animations in the Factorial webpage (`webpage/`).
+It's already installed. GSAP is better for scroll-linked scrub/pin — use Framer Motion for:
+component enter/exit, gesture feedback, layout transitions, and staggered reveals.
+
+---
+
+## Server/Client Boundary Rule
+
+Framer Motion requires a Client Component. Minimize the boundary — keep `'use client'`
+as deep in the tree as possible.
+
+```tsx
+// ❌ Wrong: marking the whole section as client
+'use client'
+export function HeroSection() { ... }
+
+// ✅ Right: isolate the animated part
+// HeroSection.tsx — server component
+export function HeroSection() {
+  return (
+    <section>
+      <HeroHeadline text="..." />   {/* animated client component */}
+      <HeroCopy />                  {/* can stay server */}
+    </section>
+  )
+}
+
+// HeroHeadline.tsx
+'use client'
+import { motion } from 'framer-motion'
+export function HeroHeadline({ text }: { text: string }) {
+  return <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+    {text}
+  </motion.h1>
+}
+```
+
+---
+
+## Decision Ladder
+
+1. Simple transition (hover, color, opacity) → **CSS transition**
+2. Component enter/exit, feedback → **`motion.*`**
+3. Many components → **`motion.*` + variants**
+4. Exit animations needed → **`AnimatePresence`**
+5. Layout shift animations → **`layout` prop**
+6. Shared element transitions → **`layoutId`**
+7. Large bundle concern → **`m.*` with `LazyMotion`**
+
+---
+
+## Motion Budget
+
+| Type | Duration |
+|------|----------|
+| Button press / micro-interaction | 0.12–0.22s |
+| Tooltip / popover | 0.15–0.25s |
+| Component reveal | 0.18–0.35s |
+| Modal | 0.20–0.40s |
+| Page transition | 0.25–0.45s |
+
+---
+
+## Core Patterns
+
+### Enter animation
+
+```tsx
+'use client'
+import { motion } from 'framer-motion'
+
+// Simple
+<motion.div
+  initial={{ opacity: 0, y: 20 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+/>
+
+// With variants (reusable)
+const variants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.23, 1, 0.32, 1] } },
+}
+
+<motion.div variants={variants} initial="hidden" animate="visible" />
+```
+
+### Scroll reveal (whileInView)
+
+```tsx
+<motion.div
+  initial={{ opacity: 0, y: 30 }}
+  whileInView={{ opacity: 1, y: 0 }}
+  viewport={{ once: true, margin: '-80px' }}
+  transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
+/>
+```
+
+`once: true` — only animates in once (don't re-animate on scroll back).
+`margin: '-80px'` — triggers 80px before element enters viewport.
+
+### Stagger children
+
+```tsx
+const container = {
+  hidden: {},
+  visible: {
+    transition: {
+      staggerChildren: 0.07,
+      delayChildren: 0.1,
+    },
+  },
+}
+
+const item = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.23, 1, 0.32, 1] } },
+}
+
+<motion.ul variants={container} initial="hidden" animate="visible">
+  {items.map((i) => (
+    <motion.li key={i.id} variants={item}>{i.label}</motion.li>
+  ))}
+</motion.ul>
+```
+
+### AnimatePresence (exit animations)
+
+```tsx
+'use client'
+import { AnimatePresence, motion } from 'framer-motion'
+
+// Wrap conditionally rendered content
+<AnimatePresence>
+  {isOpen && (
+    <motion.div
+      key="modal"
+      initial={{ opacity: 0, scale: 0.96 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.96 }}
+      transition={{ duration: 0.2 }}
+    />
+  )}
+</AnimatePresence>
+```
+
+**Rules:**
+- `AnimatePresence` must wrap the conditional — NOT be inside it
+- Each child needs a stable `key`
+- **Never key exit-sensitive children by array index** — use a stable ID
+- `initial={false}` on app-level `AnimatePresence` wrappers (no enter on hydration)
+
+### Layout animation
+
+```tsx
+// Animate layout changes automatically
+<motion.div layout />
+
+// Shared element transition
+<motion.div layoutId="hero-image" />  // source
+// elsewhere:
+<motion.div layoutId="hero-image" />  // destination — GSAP-like FLIP
+```
+
+Use `layout` before writing manual height/width choreography — it usually handles it.
+
+---
+
+## App Router: AnimatePresence for Route Transitions
+
+Needs a persistent Client Component in layout that wraps `{children}`:
+
+```tsx
+// app/[locale]/(full-layout)/AnimationShell.tsx
+'use client'
+import { AnimatePresence } from 'framer-motion'
+import { usePathname } from 'next/navigation'
+
+export function AnimationShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
+  return (
+    <AnimatePresence initial={false} mode="wait">
+      <div key={pathname}>{children}</div>
+    </AnimatePresence>
+  )
+}
+
+// app/[locale]/(full-layout)/layout.tsx  (server component)
+import { AnimationShell } from './AnimationShell'
+
+export default function Layout({ children }) {
+  return <AnimationShell>{children}</AnimationShell>
+}
+```
+
+---
+
+## Reduced Motion
+
+```tsx
+import { MotionConfig } from 'framer-motion'
+
+// Globally in layout — respects OS setting
+<MotionConfig reducedMotion="user">
+  {children}
+</MotionConfig>
+```
+
+`reducedMotion="user"` — reads `prefers-reduced-motion` and reduces durations + disables
+layout animations automatically.
+
+---
+
+## LazyMotion (bundle size)
+
+```tsx
+import { LazyMotion, domAnimation, m } from 'framer-motion'
+
+// In a layout or shell
+<LazyMotion features={domAnimation}>
+  {children}
+</LazyMotion>
+
+// In components — use `m` instead of `motion`
+<m.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} />
+```
+
+`domAnimation` saves ~18kb vs full `motion` import.
+Use when animating many components — especially in a page that loads late.
+
+---
+
+## Common Mistakes
+
+| Mistake | Fix |
+|---------|-----|
+| Framer Motion `x`/`y` props | These are NOT hardware-accelerated. Use CSS `translate` or pass full `transform` string |
+| Key by array index on exit-animated list | Use stable ID as `key` |
+| `AnimatePresence` inside the conditional | It must wrap the conditional |
+| No `once: true` on `whileInView` | Content re-animates on scroll back — almost always wrong |
+| `initial={true}` on root `AnimatePresence` | All children animate in on first render — use `initial={false}` |
+| Forgetting `'use client'` | Framer Motion components crash in server components |

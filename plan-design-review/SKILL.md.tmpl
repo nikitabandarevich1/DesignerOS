@@ -4,13 +4,14 @@ preamble-tier: 3
 interactive: true
 version: 2.0.0
 description: |
-  Designer's eye plan review — interactive, like CEO and Eng review.
+  Designer's eye plan review for the Factorial webpage — interactive.
   Rates each design dimension 0-10, explains what would make it a 10,
-  then fixes the plan to get there. Works in plan mode. For live site
-  visual audits, use /design-review. Use when asked to "review the design plan"
-  or "design critique".
-  Proactively suggest when the user has a plan with UI/UX components that
-  should be reviewed before implementation. (gstack)
+  then fixes the plan to get there. Works in plan mode. Checks brand fit
+  (DM Sans, design tokens, Factorial palette), DatoCMS complexity, locale
+  and responsive coverage, RevealOnScroll intent, and design token compliance.
+  For live site visual audits, use /design-review. For brainstorming before
+  planning, use /office-hours.
+  Use when asked to "review the design plan" or "design critique". (designeros)
 allowed-tools:
   - Read
   - Edit
@@ -46,9 +47,9 @@ choices.
 Do NOT make any code changes. Do NOT start implementation. Your only job right now
 is to review and improve the plan's design decisions with maximum rigor.
 
-### The gstack designer — YOUR PRIMARY TOOL
+### The DesignerOS designer — YOUR PRIMARY TOOL
 
-You have the **gstack designer**, an AI mockup generator that creates real visual mockups
+You have the **DesignerOS designer**, an AI mockup generator that creates real visual mockups
 from design briefs. This is your signature capability. Use it by default, not as an
 afterthought.
 
@@ -71,13 +72,14 @@ the designer is available and you should use it.
 
 1. Empty states are features. "No items found." is not a design. Every empty state needs warmth, a primary action, and context.
 2. Every screen has a hierarchy. What does the user see first, second, third? If everything competes, nothing wins.
-3. Specificity over vibes. "Clean, modern UI" is not a design decision. Name the font, the spacing scale, the interaction pattern.
-4. Edge cases are user experiences. 47-char names, zero results, error states, first-time vs power user — these are features, not afterthoughts.
-5. AI slop is the enemy. Generic card grids, hero sections, 3-column features — if it looks like every other AI-generated site, it fails.
-6. Responsive is not "stacked on mobile." Each viewport gets intentional design.
-7. Accessibility is not optional. Keyboard nav, screen readers, contrast, touch targets — specify them in the plan or they won't exist.
-8. Subtraction default. If a UI element doesn't earn its pixels, cut it. Feature bloat kills products faster than missing features.
-9. Trust is earned at the pixel level. Every interface decision either builds or erodes user trust.
+3. Specificity over vibes. "Clean, modern UI" is not a design decision. Name the font (DM Sans), the token, the interaction pattern.
+4. Edge cases are user experiences. Long Spanish text, zero results, error states, first-time vs. power user.
+5. AI slop is the enemy. Generic card grids, hero sections, 3-column features — if it looks like every other SaaS template, it fails.
+6. Responsive is not "stacked on mobile." Each breakpoint (375/768/1440px) gets intentional design.
+7. Accessibility is not optional. Keyboard nav, screen readers, contrast (4.5:1 minimum), touch targets (44px) — specify them.
+8. Subtraction default. If a UI element doesn't earn its pixels, cut it.
+9. Factorial brand specificity. DM Sans, radical (brand red) for primary CTAs, Factorial design tokens — not generic SaaS blue.
+10. Locale-first. Design with Spanish text (~20% longer than English) in mind. If it breaks in Spanish, it's broken.
 
 ## Cognitive Patterns — How Great Designers See
 
@@ -188,8 +190,8 @@ Allowed commands under this exception:
 First, set up the output directory. Name it after the screen/feature being designed and today's date:
 
 ```bash
-eval "$(~/.claude/skills/gstack/bin/gstack-slug 2>/dev/null)"
-_DESIGN_DIR="$HOME/.gstack/projects/$SLUG/designs/<screen-name>-$(date +%Y%m%d)"
+eval "$(~/.claude/skills/designeros/bin/gstack-slug 2>/dev/null)"
+_DESIGN_DIR="$HOME/.designeros/projects/$SLUG/designs/<screen-name>-$(date +%Y%m%d)"
 mkdir -p "$_DESIGN_DIR"
 echo "DESIGN_DIR: $_DESIGN_DIR"
 ```
@@ -308,15 +310,18 @@ FIX TO 10: Rewrite vague UI descriptions with specific alternatives.
 If visual mockups were generated in Step 0.5, evaluate them against the AI slop blacklist above. Read each mockup image using the Read tool. Does the mockup fall into generic patterns (3-column grid, centered hero, stock-photo feel)? If so, flag it and offer to regenerate with more specific direction via `$D iterate --feedback "..."`.
 **STOP.** AskUserQuestion once per issue. Do NOT batch. Recommend + WHY.
 
-### Pass 5: Design System Alignment
-Rate 0-10: Does the plan align with DESIGN.md?
-FIX TO 10: If DESIGN.md exists, annotate with specific tokens/components. If no DESIGN.md, flag the gap and recommend `/design-consultation`.
-Flag any new component — does it fit the existing vocabulary?
+### Pass 5: Factorial Design System Alignment
+Rate 0-10: Does the plan align with the Factorial webpage design system?
+FIX TO 10: Check token compliance (all colors from palette, no hardcoded hex), DM Sans usage, spacing on 4px grid, Factorial palette (neutral, radical, viridian, sunbeam, tangerine, jade). Flag any new component — does it fit the existing vocabulary?
+**Specific checks:**
+- CMS schema: does this plan include DatoCMS field definitions? For any CMS-driven section, the schema must be part of the plan.
+- RevealOnScroll: is animation intent specified? Above-fold elements must NOT be hidden waiting to reveal.
+- Locale coverage: does the plan call out Spanish text behavior?
 **STOP.** AskUserQuestion once per issue. Do NOT batch. Recommend + WHY.
 
-### Pass 6: Responsive & Accessibility
-Rate 0-10: Does the plan specify mobile/tablet, keyboard nav, screen readers?
-FIX TO 10: Add responsive specs per viewport — not "stacked on mobile" but intentional layout changes. Add a11y: keyboard nav patterns, ARIA landmarks, touch target sizes (44px min), color contrast requirements.
+### Pass 6: Responsive & Accessibility (Factorial Breakpoints)
+Rate 0-10: Does the plan specify 375px/768px/1440px, keyboard nav, screen readers?
+FIX TO 10: Add responsive specs per Factorial breakpoint — not "stacked on mobile" but intentional layout changes. Add a11y: keyboard nav patterns, ARIA landmarks, touch target sizes (44px min), color contrast ≥4.5:1 (WCAG AA). **Locale check:** Does the plan cover Spanish text behavior at mobile widths?
 **STOP.** AskUserQuestion once per issue. Do NOT batch. Recommend + WHY.
 
 ### Pass 7: Unresolved Design Decisions
@@ -388,14 +393,14 @@ Then present options: **A)** Add to TODOS.md **B)** Skip — not valuable enough
   | NOT in scope         | written (___ items)                         |
   | What already exists  | written                                     |
   | TODOS.md updates     | ___ items proposed                          |
-  | Approved Mockups     | ___ generated, ___ approved                  |
-  | Decisions made       | ___ added to plan                           |
-  | Decisions deferred   | ___ (listed below)                          |
-  | Overall design score | ___/10 → ___/10                             |
-  +====================================================================+
+    | Approved Mockups     | ___ generated, ___ approved                  |
+    | Decisions made       | ___ added to plan                           |
+    | Decisions deferred   | ___ (listed below)                          |
+    | Overall design score | ___/10 → ___/10                             |
+    +====================================================================+
 ```
 
-If all passes 8+: "Plan is design-complete. Run /design-review after implementation for visual QA."
+If all passes 8+: "Plan is design-complete. Run /design-review after implementation for visual QA, then /qa for functional testing."
 If any below 8: note what's unresolved and why (user chose to defer).
 
 ### Unresolved Decisions
@@ -426,7 +431,7 @@ the same pattern. The review dashboard depends on this data. Skipping this
 command breaks the review readiness dashboard in /ship.
 
 ```bash
-~/.claude/skills/gstack/bin/gstack-review-log '{"skill":"plan-design-review","timestamp":"TIMESTAMP","status":"STATUS","initial_score":N,"overall_score":N,"unresolved":N,"decisions_made":N,"commit":"COMMIT"}'
+~/.claude/skills/designeros/bin/gstack-review-log '{"skill":"plan-design-review","timestamp":"TIMESTAMP","status":"STATUS","initial_score":N,"overall_score":N,"unresolved":N,"decisions_made":N,"commit":"COMMIT"}'
 ```
 
 Substitute values from the Completion Summary:
@@ -446,26 +451,17 @@ Substitute values from the Completion Summary:
 
 ## Next Steps — Review Chaining
 
-After displaying the Review Readiness Dashboard, recommend the next review(s) based on what this design review discovered. Read the dashboard output to see which reviews have already been run and whether they are stale.
+After the Completion Summary, recommend the next step:
 
-**Recommend /plan-eng-review if eng review is not skipped globally** — check the dashboard output for `skip_eng_review`. If it is `true`, eng review is opted out — do not recommend it. Otherwise, eng review is the required shipping gate. If this design review added significant interaction specifications, new user flows, or changed the information architecture, emphasize that eng review needs to validate the architectural implications. If an eng review already exists but the commit hash shows it predates this design review, note that it may be stale and should be re-run.
+- `/design-review` — visual audit of the live site after implementation (required gate)
+- `/qa` — functional QA at all Factorial breakpoints and locales
+- `/office-hours` — if fundamental design direction gaps were found, step back and brainstorm first
 
-**Consider recommending /plan-ceo-review** — but only if this design review revealed fundamental product direction gaps. Specifically: if the overall design score started below 4/10, if the information architecture had major structural problems, or if the review surfaced questions about whether the right problem is being solved. AND no CEO review exists in the dashboard. This is a selective recommendation — most design reviews should NOT trigger a CEO review.
-
-**If both are needed, recommend eng review first** (required gate).
-
-**Recommend design exploration skills when appropriate** — /design-shotgun and /design-html
-produce design artifacts (mockups, HTML previews), not application code. They belong in
-plan mode alongside reviews. If this design review found visual issues that would benefit
-from exploring new directions, recommend /design-shotgun. If approved mockups exist and
-need to be turned into working HTML, recommend /design-html.
-
-Use AskUserQuestion to present the next step. Include only applicable options:
-- **A)** Run /plan-eng-review next (required gate)
-- **B)** Run /plan-ceo-review (only if fundamental product gaps found)
-- **C)** Run /design-shotgun — explore visual design variants for issues found
-- **D)** Run /design-html — generate Pretext-native HTML from approved mockups
-- **E)** Skip — I'll handle next steps manually
+Use AskUserQuestion to present next step options:
+- **A)** Proceed to implementation
+- **B)** Run /design-review after implementation (recommended)
+- **C)** Step back to /office-hours — design direction needs more exploration
+- **D)** Skip — I'll handle next steps manually
 
 ## Formatting Rules
 * NUMBER issues (1, 2, 3...) and LETTERS for options (A, B, C...).

@@ -3,11 +3,12 @@ name: document-release
 preamble-tier: 2
 version: 1.0.0
 description: |
-  Post-ship documentation update. Reads all project docs, cross-references the
-  diff, updates README/ARCHITECTURE/CONTRIBUTING/CLAUDE.md to match what shipped,
-  polishes CHANGELOG voice, cleans up TODOS, and optionally bumps VERSION. Use when
-  asked to "update the docs", "sync documentation", or "post-ship docs".
-  Proactively suggest after a PR is merged or code is shipped. (gstack)
+  Post-ship documentation update for the Factorial webpage. Reads all project docs,
+  cross-references the diff, updates README/ARCHITECTURE/CONTRIBUTING/CLAUDE.md,
+  syncs DatoCMS component notes, logs new design system components to the team
+  changelog, cleans up TODOs, and optionally bumps VERSION.
+  Use when asked to "update the docs", "sync documentation", or "post-ship docs".
+  Proactively suggest after a PR is merged or code is shipped. (designeros)
 allowed-tools:
   - Bash
   - Read
@@ -78,7 +79,7 @@ git diff <base>...HEAD --name-only
 3. Discover all documentation files in the repo:
 
 ```bash
-find . -maxdepth 2 -name "*.md" -not -path "./.git/*" -not -path "./node_modules/*" -not -path "./.gstack/*" -not -path "./.context/*" | sort
+find . -maxdepth 3 -name "*.md" -not -path "./.git/*" -not -path "*/node_modules/*" -not -path "./.designeros/*" -not -path "./.context/*" | sort
 ```
 
 4. Classify the changes into categories relevant to documentation:
@@ -123,6 +124,11 @@ Read each documentation file and cross-reference it against the diff. Use these 
 **Any other .md files:**
 - Read the file, determine its purpose and audience.
 - Cross-reference against the diff to check if it contradicts anything the file says.
+
+**Factorial Webpage — extra checks:**
+- **webpage/design-system/**: If new atoms, molecules, or organisms were added or changed, do any `README.md` or usage docs in that directory need updating?
+- **DatoCMS component notes**: If a new CMS section type was added (new DatoCMS model), check whether `webpage/src/modules/<module>/README.md` or any design-system doc should note the schema.
+- If new DatoCMS fields, blocks, or models were added: cross-reference with existing documentation about the CMS schema.
 
 For each file, classify needed updates as:
 
@@ -371,7 +377,7 @@ If `CURRENT_TITLE` is empty (no open PR/MR), skip with message "No PR/MR found �
 3. Compute the corrected title using the shared helper (single source of truth — same one `/ship` uses):
 
 ```bash
-NEW_TITLE=$(~/.claude/skills/gstack/bin/gstack-pr-title-rewrite.sh "$V" "$CURRENT_TITLE")
+NEW_TITLE=$(~/.claude/skills/designeros/bin/gstack-pr-title-rewrite.sh "$V" "$CURRENT_TITLE")
 ```
 
 The helper handles three cases: title already correct (no-op), title has a different `v<X.Y.Z.W>` prefix (replace it), or title has no version prefix (prepend one).

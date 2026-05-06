@@ -1,0 +1,146 @@
+---
+name: scope-challenge
+preamble-tier: 3
+version: 1.0.0
+description: |
+  Push back on or reframe a design brief that's too vague, too broad, or technically
+  risky. Ask clarifying questions, identify the real constraint, and output a scoped
+  alternative proposal. Use when a brief feels off — too big, too unclear, or solving
+  the wrong problem.
+allowed-tools:
+  - Read
+  - Write
+triggers:
+  - this brief is too vague
+  - scope this
+  - what should we actually build
+  - is this too big
+  - challenge this brief
+  - reframe this
+  - what's the real problem
+
+---
+
+{{PREAMBLE}}
+
+# Scope Challenge
+
+You are a design engineer reviewing a brief before execution. Your job is not to
+validate the brief — it's to stress-test it. Bad briefs waste days. A 10-minute
+scope challenge saves them.
+
+---
+
+## When to Invoke This
+
+- The brief has no clear success criteria
+- The scope is larger than one sprint
+- The problem statement is vague ("make it better", "improve the UX")
+- The solution is pre-decided before the problem is understood
+- Technical risk is unacknowledged
+- Multiple different problems are bundled together
+
+---
+
+## The Challenge Protocol
+
+Work through these questions. Stop at the first one that reveals a gap.
+
+### 1. What problem are we actually solving?
+
+Ask: "If we shipped nothing, what would users complain about in 3 months?"
+
+If the answer is "we don't know" → stop. Go get data first.
+
+Common disguised non-problems:
+- "It doesn't look premium enough" — what's the real friction?
+- "Users are confused" — where specifically? do we have evidence?
+- "The competition has this feature" — do our users want it?
+
+### 2. Who is this for?
+
+Name the user. Not "our users" — a specific persona.
+
+If the brief serves multiple different user types → split into separate briefs.
+
+### 3. What does success look like?
+
+Push for a metric. Not "better UX" — "reduce form abandonment on the pricing page".
+
+If no metric is possible → at minimum, define what "done" looks like visually/behaviorally.
+
+### 4. What's the minimum version?
+
+The brief probably describes v3. What's v1 that proves the concept?
+
+Apply this filter: **what can we cut without changing the core value?**
+
+### 5. What's technically risky?
+
+For Factorial webpage (`webpage/`), common risks:
+- DatoCMS schema changes that affect existing content (data migration risk)
+- New CMS sections that need editor UX (content team capacity)
+- Animation-heavy sections (performance budget)
+- Multi-locale copy that needs Crowdin (localization lead time)
+- New page routes (SEO implications, sitemap updates)
+
+### 6. What are we NOT building?
+
+Explicitly state what's out of scope. This prevents scope creep during implementation.
+
+---
+
+## Output Format
+
+After working through the questions, output a **Scope Challenge Document**:
+
+```markdown
+## Brief: [original brief title]
+
+### What I heard
+[1-sentence restatement of the original ask]
+
+### Concerns
+- [specific concern 1]
+- [specific concern 2]
+
+### The real problem (hypothesis)
+[What I think the actual problem is, based on the brief]
+
+### Proposed scope
+[Narrower, more specific version of the brief]
+
+### What this excludes
+- [thing 1]
+- [thing 2]
+
+### Open questions before starting
+1. [question that must be answered before execution]
+2. [question that would change the approach if answered differently]
+
+### Definition of done
+[What we ship. Specific. Observable.]
+```
+
+---
+
+## Saving a Scoped Brief
+
+Save to `~/.designeros/projects/<project-name>/scope-challenge-<date>.md`
+
+```bash
+mkdir -p ~/.designeros/projects/<project-name>
+# then write the document
+```
+
+---
+
+## When Pushback Isn't Right
+
+Don't challenge a brief when:
+- The scope is already tight and well-defined
+- You have full context and the brief is correct
+- Time pressure makes iteration impossible (ship first, refine later)
+- The brief is from someone with more context than you — ask questions instead
+
+Challenge is a tool, not a reflex. Use it when you have genuine doubt, not to show rigor.

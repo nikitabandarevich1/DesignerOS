@@ -1,0 +1,92 @@
+---
+name: designeros-upgrade
+version: 1.0.0
+description: |
+  Upgrade DesignerOS to the latest version from nikitabandarevich1/DesignerOS.
+  Detects global install, runs the upgrade, rebuilds skills, and shows what's new.
+  Use when asked to "upgrade designeros", "update designeros", or "get latest version".
+voice-triggers:
+  - "upgrade the tools"
+  - "update the tools"
+  - "upgrade designeros"
+triggers:
+  - upgrade designeros
+  - update designeros version
+  - get latest designeros
+allowed-tools:
+  - Bash
+  - Read
+  - Write
+  - AskUserQuestion
+---
+
+# /designeros-upgrade
+
+Upgrade DesignerOS to the latest version and show what's new.
+
+## Step 1: Check for update
+
+```bash
+INSTALL_DIR="$HOME/DesignerOS"
+if [ ! -d "$INSTALL_DIR/.git" ]; then
+  echo "ERROR: DesignerOS not found at $INSTALL_DIR"
+  exit 1
+fi
+OLD_VERSION=$(cat "$INSTALL_DIR/VERSION" 2>/dev/null || git -C "$INSTALL_DIR" describe --tags --abbrev=0 2>/dev/null || echo "unknown")
+REMOTE_COMMIT=$(git -C "$INSTALL_DIR" ls-remote origin HEAD 2>/dev/null | awk '{print $1}' | head -c 8)
+LOCAL_COMMIT=$(git -C "$INSTALL_DIR" rev-parse --short HEAD 2>/dev/null || echo "unknown")
+echo "LOCAL=$LOCAL_COMMIT REMOTE=$REMOTE_COMMIT OLD_VERSION=$OLD_VERSION"
+```
+
+If `LOCAL_COMMIT` = `REMOTE_COMMIT` (up to date): tell the user "DesignerOS is already up to date ($LOCAL_COMMIT)." and exit.
+
+## Step 2: Ask user
+
+Use AskUserQuestion:
+- Question: "DesignerOS update available (you're on $LOCAL_COMMIT, remote is $REMOTE_COMMIT). Upgrade now?"
+- Options: ["Yes, upgrade now", "Not now"]
+
+If "Not now": continue without upgrading.
+
+## Step 3: Upgrade
+
+```bash
+cd "$INSTALL_DIR"
+git stash 2>&1 | head -5
+git fetch origin
+git reset --hard origin/main
+```
+
+## Step 4: Rebuild skills
+
+```bash
+cd "$INSTALL_DIR"
+~/.bun/bin/bun scripts/gen-skill-docs.ts
+./setup --no-prefix
+```
+
+If `./setup` fails: warn the user and restore:
+```bash
+git reset --hard "$LOCAL_COMMIT"
+```
+Tell user: "Upgrade failed — restored previous version. Try again or upgrade manually."
+
+## Step 5: Show What's New
+
+Read `$INSTALL_DIR/CHANGELOG.md` (if it exists) and summarize recent changes as 3-5 bullets. Format:
+
+```
+DesignerOS upgraded!
+
+What's new:
+- [bullet 1]
+- [bullet 2]
+- ...
+
+Skills rebuilt and installed to ~/.claude/skills/.
+```
+
+If no CHANGELOG exists, show the last 5 git commits:
+```bash
+git -C "$INSTALL_DIR" log --oneline -5
+```

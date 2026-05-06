@@ -1,0 +1,306 @@
+---
+name: premium-frontend-ui
+preamble-tier: 4
+version: 1.0.0
+description: |
+  Premium UI craftsmanship for the Factorial webpage. Entry sequences, hero architecture,
+  magnetic interactions, custom cursors, scroll-driven narratives, and the invisible
+  details that separate polished work from acceptable work. Use when you want to push
+  the visual quality of a page or component to an exceptional level.
+allowed-tools:
+  - Read
+  - Edit
+  - Write
+  - Bash
+triggers:
+  - premium ui
+  - make this feel premium
+  - polish this page
+  - hero section
+  - entry sequence
+  - magnetic button
+  - custom cursor
+  - exceptional quality
+  - push this further
+
+---
+
+{{PREAMBLE}}
+
+# Premium Frontend UI
+
+Craft exceptional UI for the Factorial webpage (`webpage/`). This skill is about
+the invisible details: the 50ms delay that makes a button feel satisfying, the
+spring curve that makes a dropdown feel physical, the typographic rhythm that
+makes a page feel authoritative.
+
+**Stack:** Next.js 15 · Tailwind CSS 3 · Framer Motion · GSAP · DM Sans font
+
+---
+
+## The Standard
+
+Ask this about every detail: **would a user notice if it were gone?**
+
+If yes — keep it and do it right.
+If no — cut it. Invisible complexity is debt.
+
+---
+
+## Hero Architecture
+
+Every hero needs three layers working together:
+
+```
+┌─────────────────────────────────────┐
+│  BACKGROUND LAYER                   │  z-0: image, video, gradient, texture
+│  CONTENT LAYER                      │  z-10: headline, subtext, CTA
+│  DEPTH LAYER (optional)             │  z-5: parallax overlay, grain, blur
+└─────────────────────────────────────┘
+```
+
+### Hero template
+
+```tsx
+'use client'
+import { motion } from 'framer-motion'
+
+// Word-level stagger for hero headlines
+function AnimatedHeadline({ text }: { text: string }) {
+  const words = text.split(' ')
+  return (
+    <h1 className="text-[clamp(2.5rem,5vw,5rem)] font-bold leading-tight">
+      {words.map((word, i) => (
+        <motion.span
+          key={i}
+          className="inline-block mr-[0.25em]"
+          initial={{ opacity: 0, y: '1em', clipPath: 'inset(0 0 100% 0)' }}
+          animate={{ opacity: 1, y: 0, clipPath: 'inset(0 0 0% 0)' }}
+          transition={{
+            duration: 0.6,
+            delay: 0.1 + i * 0.07,
+            ease: [0.23, 1, 0.32, 1],
+          }}
+        >
+          {word}
+        </motion.span>
+      ))}
+    </h1>
+  )
+}
+
+export function HeroSection() {
+  return (
+    <section className="relative min-h-[100dvh] flex items-center">
+      {/* Background */}
+      <motion.div
+        className="absolute inset-0 z-0"
+        initial={{ scale: 1.05 }}
+        animate={{ scale: 1 }}
+        transition={{ duration: 1.4, ease: [0.23, 1, 0.32, 1] }}
+      >
+        {/* image or video */}
+      </motion.div>
+
+      {/* Content */}
+      <div className="relative z-10 container mx-auto px-6">
+        <AnimatedHeadline text="Your compelling headline here" />
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.5, ease: [0.23, 1, 0.32, 1] }}
+          className="mt-6 text-xl"
+        >
+          Supporting copy
+        </motion.p>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.7, ease: [0.23, 1, 0.32, 1] }}
+          className="mt-10"
+        >
+          {/* CTA button */}
+        </motion.div>
+      </div>
+    </section>
+  )
+}
+```
+
+---
+
+## Entry Sequence (Page Load)
+
+For pages that need a dramatic first impression:
+
+```tsx
+'use client'
+import { useEffect, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
+
+export function EntrySequence({ children }: { children: React.ReactNode }) {
+  const [loaded, setLoaded] = useState(false)
+
+  useEffect(() => {
+    // Minimum display time + actual load
+    const timer = setTimeout(() => setLoaded(true), 800)
+    return () => clearTimeout(timer)
+  }, [])
+
+  return (
+    <>
+      <AnimatePresence>
+        {!loaded && (
+          <motion.div
+            key="loader"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-950"
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.6, ease: [0.23, 1, 0.32, 1] }}
+          >
+            {/* Logo or wordmark */}
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: loaded ? 1 : 0 }}
+        transition={{ duration: 0.4 }}
+      >
+        {children}
+      </motion.div>
+    </>
+  )
+}
+```
+
+Use sparingly — only for brand-defining landing pages. Don't block navigation.
+
+---
+
+## Fluid Typography
+
+```css
+/* DM Sans, fluid scale */
+.hero-heading {
+  font-family: 'DM Sans', sans-serif;
+  font-size: clamp(2.5rem, 5vw + 1rem, 6rem);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+
+.section-heading {
+  font-size: clamp(1.75rem, 3vw + 0.5rem, 3.5rem);
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+}
+```
+
+Tight line-height (`1.05–1.15`) for large headings feels premium.
+Loose line-height (`1.6–1.8`) for body text improves readability.
+
+---
+
+## Magnetic Button
+
+Subtle cursor attraction — gives buttons a physical feel.
+Only on desktop (`@media (hover: hover) and (pointer: fine)`).
+
+```tsx
+'use client'
+import { useRef, MouseEvent } from 'react'
+import { motion, useMotionValue, useSpring } from 'framer-motion'
+
+export function MagneticButton({ children, strength = 0.3 }: {
+  children: React.ReactNode
+  strength?: number
+}) {
+  const ref = useRef<HTMLButtonElement>(null)
+  const x = useMotionValue(0)
+  const y = useMotionValue(0)
+  const springX = useSpring(x, { stiffness: 200, damping: 20 })
+  const springY = useSpring(y, { stiffness: 200, damping: 20 })
+
+  function handleMouseMove(e: MouseEvent) {
+    const rect = ref.current!.getBoundingClientRect()
+    const cx = rect.left + rect.width / 2
+    const cy = rect.top + rect.height / 2
+    x.set((e.clientX - cx) * strength)
+    y.set((e.clientY - cy) * strength)
+  }
+
+  function handleMouseLeave() {
+    x.set(0)
+    y.set(0)
+  }
+
+  return (
+    <motion.button
+      ref={ref}
+      style={{ x: springX, y: springY }}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      className="..."
+    >
+      {children}
+    </motion.button>
+  )
+}
+```
+
+Strength `0.2–0.4` is the sweet spot. More feels glitchy.
+
+---
+
+## Performance Non-negotiables
+
+```tsx
+// ✅ Only animate these two properties
+style={{ transform: 'translateY(20px)', opacity: 0 }}
+
+// ✅ will-change: add before animation, remove after
+useEffect(() => {
+  el.style.willChange = 'transform'
+  // ... animation ...
+  // on complete:
+  el.style.willChange = 'auto'
+}, [])
+
+// ✅ Hover effects only on true hover devices
+// In CSS:
+@media (hover: hover) and (pointer: fine) {
+  .card:hover { transform: translateY(-4px); }
+}
+
+// ✅ Heavy animations only when user hasn't requested reduced motion
+@media (prefers-reduced-motion: no-preference) {
+  .animated { animation: reveal 0.6s ease-out forwards; }
+}
+```
+
+---
+
+## The Details That Matter
+
+These are the differences between "looks nice" and "feels premium":
+
+| Detail | Implementation |
+|--------|----------------|
+| Button active state | `scale(0.97)` on `:active` — feels tactile |
+| Link underline | Custom `background-size` animated underline, not `text-decoration` |
+| Card hover | `translateY(-4px)` + subtle shadow increase — 200ms ease-out |
+| Image load | Blur-up placeholder → full resolution (avoid layout shift) |
+| Focus ring | Custom ring matching brand color — never `outline: none` alone |
+| Number animation | Count-up on scroll enter (use `useMotionValue` + `animate`) |
+| Empty states | Illustrated, not just text. Still animates in. |
+| Error states | Color + icon + message — never just red text |
+
+---
+
+## Factorial Webpage Context
+
+- **Font:** DM Sans — always. Never system fonts.
+- **Colors:** `radical` for primary CTAs, `neutral` for everything else, `viridian`/`sunbeam`/`tangerine`/`jade` as accent
+- **Animation libraries:** Framer Motion (installed), GSAP (installed), Lottie (installed)
+- **Breakpoints:** 375px / 768px / 1440px (test all three)
+- **Locales:** en-US baseline, es-ES ~20% longer — test text overflow on premium layouts
+- **Formatting:** OxFmt (single quotes, no semicolons, 2-space indent)

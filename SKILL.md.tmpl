@@ -1,12 +1,13 @@
 ---
-name: gstack
+name: designeros
 preamble-tier: 1
-version: 1.1.0
+version: 1.0.0
 description: |
-  Fast headless browser for QA testing and site dogfooding. Navigate pages, interact with
-  elements, verify state, diff before/after, take annotated screenshots, test responsive
-  layouts, forms, uploads, dialogs, and capture bug evidence. Use when asked to open or
-  test a site, verify a deployment, dogfood a user flow, or file a bug with screenshots. (gstack)
+  Fast headless browser for QA testing and site dogfooding on the Factorial webpage.
+  Navigate pages, interact with elements, verify state, diff before/after, take annotated
+  screenshots, test responsive layouts, forms, uploads, dialogs, and capture bug evidence.
+  Use when asked to open or test a site, verify a deployment, dogfood a user flow, or
+  file a bug with screenshots.
 allowed-tools:
   - Bash
   - Read
@@ -21,58 +22,53 @@ triggers:
 
 {{PREAMBLE}}
 
-If `PROACTIVE` is `false`: do NOT proactively invoke or suggest other gstack skills during
-this session. Only run skills the user explicitly invokes. This preference persists across
-sessions via `gstack-config`.
-
-If `PROACTIVE` is `true` (default): **invoke the Skill tool** when the user's request
-matches a skill's purpose. Do NOT answer directly when a skill exists for the task.
-Use the Skill tool to invoke it. The skill has specialized workflows, checklists, and
-quality gates that produce better results than answering inline.
-
 **Routing rules — when you see these patterns, INVOKE the skill via the Skill tool:**
-- User describes a new idea, asks "is this worth building", brainstorms, pitches a concept → invoke `/office-hours`
-- User asks about strategy, scope, ambition, "think bigger", "what should we build" → invoke `/plan-ceo-review`
-- User asks to review architecture, lock in the plan, "does this design make sense" → invoke `/plan-eng-review`
-- User asks about design system, brand, visual identity, "how should this look" → invoke `/design-consultation`
-- User asks to review design of a plan → invoke `/plan-design-review`
-- User asks about developer experience of a plan, API/CLI/SDK design → invoke `/plan-devex-review`
-- User wants all reviews done automatically, "review everything" → invoke `/autoplan`
-- User reports a bug, error, broken behavior, "why is this broken", "this doesn't work", "wtf", "something's wrong" → invoke `/investigate`
-- User asks to test the site, find bugs, QA, "does this work", "check the deploy" → invoke `/qa`
+
+### Webpage development
+- User is building a new CMS section, DatoCMS component → invoke `/webpage-cms-component`
+- User is building a new page, route, landing page → invoke `/webpage-page`
+- User is working with design tokens, design system components, Storybook → invoke `/webpage-design-system`
+- User needs a DatoCMS schema migration → invoke `/datocms-migration`
+- User asks about general webpage architecture → invoke `/webpage`
+
+### Animation & interaction
+- User asks about whether/how to animate something, polish, interaction design → invoke `/design-engineer`
+- User needs GSAP ScrollTrigger, pinning, scrub, scroll-linked → invoke `/gsap-scrolltrigger`
+- User needs Framer Motion, whileInView, AnimatePresence, layout animation → invoke `/nextjs-framer-motion`
+- User wants a full immersive scroll experience, parallax storytelling → invoke `/scroll-experience`
+- User wants premium UI quality, hero architecture, entry sequences, magnetic interactions → invoke `/premium-frontend-ui`
+
+### Meta-workflows (start here)
+- User wants to start working on a ticket, project, or feature → invoke `/start`
+- User wants to build a new CMS section end-to-end → invoke `/new-section`
+- User wants to build a new page end-to-end → invoke `/new-page`
+- User wants to animate a component or section → invoke `/animate-this`
+- User wants a full design audit of the site or a section → invoke `/design-audit`
+- User is ready to ship — wants final checks + PR + docs → invoke `/ship-it`
+
+### Workflow
+- User describes a new idea, brainstorms a feature, wants design feedback → invoke `/office-hours`
+- User wants to review the plan's design quality, visual spec → invoke `/plan-design-review`
+- User wants all reviews done automatically → invoke `/autoplan`
+- User reports a bug, something is broken → invoke `/investigate`
+- User asks to test the site, find bugs, QA → invoke `/qa`
 - User asks to just report bugs without fixing → invoke `/qa-only`
-- User asks to review code, check the diff, pre-landing review, "look at my changes" → invoke `/review`
-- User asks about visual polish, design audit of a live site, "this looks off" → invoke `/design-review`
-- User asks to audit the live developer experience, time-to-hello-world → invoke `/devex-review`
-- User asks to ship, deploy, push, create a PR, "let's land this", "send it" → invoke `/ship`
-- User asks to merge + deploy + verify as one flow → invoke `/land-and-deploy`
-- User asks to configure deployment for the project → invoke `/setup-deploy`
-- User asks to monitor prod after shipping, post-deploy checks → invoke `/canary`
+- User asks to review code, check the diff → invoke `/review`
+- User asks about visual polish, design audit of a live site → invoke `/design-review`
 - User asks to update docs after shipping → invoke `/document-release`
-- User asks for a weekly retro, what did we ship, "how'd we do" → invoke `/retro`
-- User asks for a second opinion, codex review → invoke `/codex`
-- User asks for safety mode, careful mode → invoke `/careful` or `/guard`
-- User asks to restrict edits to a directory → invoke `/freeze` or `/unfreeze`
-- User asks to upgrade gstack → invoke `/gstack-upgrade`
-- User asks to save progress, checkpoint, "save my work" → invoke `/context-save`
-- User asks to resume, restore, "where was I" → invoke `/context-restore`
-- User asks about security, OWASP, vulnerabilities, "is this secure" → invoke `/cso`
-- User asks to make a PDF, document, publication → invoke `/make-pdf`
-- User asks to launch a real browser for QA, "open the browser" → invoke `/open-gstack-browser`
-- User asks to import cookies for authenticated testing → invoke `/setup-browser-cookies`
-- User asks about page speed, performance regression, benchmarks → invoke `/benchmark`
-- User asks what gstack has learned, "show learnings" → invoke `/learn`
-- User asks to tune question sensitivity, "stop asking me that" → invoke `/plan-tune`
-- User asks for code quality dashboard, "health check" → invoke `/health`
+- User asks about page speed, benchmarks → invoke `/benchmark`
+- User asks to upgrade DesignerOS → invoke `/designeros-upgrade`
+- User asks to save progress, checkpoint → invoke `/context-save`
+- User asks to resume, restore context → invoke `/context-restore`
+- User wants to draw/generate a design image → invoke `/design-shotgun`
+- User wants to build a design in HTML/CSS → invoke `/design-html`
+- User wants design advice, consultation → invoke `/design-consultation`
+- User wants to challenge or reframe a brief → invoke `/scope-challenge`
+- User wants release notes, changelog → invoke `/release-notes`
+- User asks what DesignerOS has learned → invoke `/learn`
 
-**When in doubt, invoke the skill.** A false positive (invoking a skill that wasn't
-needed) is cheaper than a false negative (answering ad-hoc when a structured workflow
-exists). The skill provides multi-step workflows, checklists, and quality gates that
-always produce better results than an ad-hoc answer. If no skill matches, answer
-directly as usual.
-
-If the user opts out of suggestions, run `gstack-config set proactive false`.
-If they opt back in, run `gstack-config set proactive true`.
+**When in doubt, invoke the skill.** A false positive is cheaper than a false negative.
+If no skill matches, answer directly.
 
 # gstack browse: QA Testing & Dogfooding
 

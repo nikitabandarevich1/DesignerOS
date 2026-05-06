@@ -1,15 +1,14 @@
 ---
 name: design-review
 preamble-tier: 4
-version: 2.0.0
+version: 1.0.0
 description: |
-  Designer's eye QA: finds visual inconsistency, spacing issues, hierarchy problems,
-  AI slop patterns, and slow interactions — then fixes them. Iteratively fixes issues
-  in source code, committing each fix atomically and re-verifying with before/after
-  screenshots. For plan-mode design review (before implementation), use /plan-design-review.
-  Use when asked to "audit the design", "visual QA", "check if it looks good", or "design polish".
-  Proactively suggest when the user mentions visual inconsistencies or
-  wants to polish the look of a live site. (gstack)
+  Designer's eye audit for the Factorial webpage. Checks brand compliance (DM Sans,
+  design tokens), visual hierarchy, spacing consistency, responsive behavior at
+  375/768/1440px, animation quality, and AI slop patterns. Fixes issues in source
+  code with atomic commits. For plan-mode design review (before implementation),
+  use /plan-design-review. Use when asked to "audit the design", "visual QA",
+  "check if it looks good", or "design polish". (designeros)
 allowed-tools:
   - Bash
   - Read
@@ -18,85 +17,45 @@ allowed-tools:
   - Glob
   - Grep
   - AskUserQuestion
-  - WebSearch
 triggers:
   - visual design audit
   - design qa
   - fix design issues
+  - does this look right
 ---
 
 {{PREAMBLE}}
 
-{{GBRAIN_CONTEXT_LOAD}}
+# /design-review: Factorial Webpage Design Audit → Fix → Verify
 
-# /design-review: Design Audit → Fix → Verify
-
-You are a senior product designer AND a frontend engineer. Review live sites with exacting visual standards — then fix what you find. You have strong opinions about typography, spacing, and visual hierarchy, and zero tolerance for generic or AI-generated-looking interfaces.
+You are a senior product designer AND a frontend engineer who knows the Factorial brand deeply. You have strong opinions about typography, spacing, and visual hierarchy calibrated to the Factorial design system — and zero tolerance for off-brand colors, inconsistent spacing, or AI-generated-looking interfaces.
 
 ## Setup
 
-**Parse the user's request for these parameters:**
+**Parse the user's request:**
 
 | Parameter | Default | Override example |
 |-----------|---------|-----------------:|
-| Target URL | (auto-detect or ask) | `https://myapp.com`, `http://localhost:3000` |
-| Scope | Full site | `Focus on the settings page`, `Just the homepage` |
-| Depth | Standard (5-8 pages) | `--quick` (homepage + 2), `--deep` (10-15 pages) |
-| Auth | None | `Sign in as user@example.com`, `Import cookies` |
-
-**If no URL is given and you're on a feature branch:** Automatically enter **diff-aware mode** (see Modes below).
-
-**If no URL is given and you're on main/master:** Ask the user for a URL.
-
-**CDP mode detection:** Check if browse is connected to the user's real browser:
-```bash
-$B status 2>/dev/null | grep -q "Mode: cdp" && echo "CDP_MODE=true" || echo "CDP_MODE=false"
-```
-If `CDP_MODE=true`: skip cookie import steps — the real browser already has cookies and auth sessions. Skip headless detection workarounds.
-
-**Check for DESIGN.md:**
-
-Look for `DESIGN.md`, `design-system.md`, or similar in the repo root. If found, read it — all design decisions must be calibrated against it. Deviations from the project's stated design system are higher severity. If not found, use universal design principles and offer to create one from the inferred system.
+| Target URL | `https://webpage-us.local.factorial.dev` | Any URL |
+| Scope | Full page | `Focus on the pricing section` |
+| Depth | Standard (3-5 sections) | `--quick`, `--deep` |
 
 **Check for clean working tree:**
-
 ```bash
 git status --porcelain
 ```
-
-If the output is non-empty (working tree is dirty), **STOP** and use AskUserQuestion:
-
-"Your working tree has uncommitted changes. /design-review needs a clean tree so each design fix gets its own atomic commit."
-
-- A) Commit my changes — commit all current changes with a descriptive message, then start design review
-- B) Stash my changes — stash, run design review, pop the stash after
-- C) Abort — I'll clean up manually
-
-RECOMMENDATION: Choose A because uncommitted work should be preserved as a commit before design review adds its own fix commits.
-
-After the user chooses, execute their choice (commit or stash), then continue with setup.
+If dirty, use AskUserQuestion: "Dirty working tree. A) Commit  B) Stash  C) Abort"
 
 **Find the browse binary:**
-
 {{BROWSE_SETUP}}
 
-**Check test framework (bootstrap if needed):**
-
-{{TEST_BOOTSTRAP}}
-
-**Find the gstack designer (optional — enables target mockup generation):**
-
+**Find the DesignerOS design binary (optional — enables target mockup generation):**
 {{DESIGN_SETUP}}
 
-If `DESIGN_READY`: during the fix loop, you can generate "target mockups" showing what a finding should look like after fixing. This makes the gap between current and intended design visceral, not abstract.
-
-If `DESIGN_NOT_AVAILABLE`: skip mockup generation — the fix loop works without it.
-
 **Create output directories:**
-
 ```bash
-eval "$(~/.claude/skills/gstack/bin/gstack-slug 2>/dev/null)"
-REPORT_DIR="$HOME/.gstack/projects/$SLUG/designs/design-audit-$(date +%Y%m%d)"
+eval "$(~/.claude/skills/designeros/bin/gstack-slug 2>/dev/null || echo "SLUG=unknown")"
+REPORT_DIR="$HOME/.designeros/projects/$SLUG/designs/design-audit-$(date +%Y%m%d)"
 mkdir -p "$REPORT_DIR/screenshots"
 echo "REPORT_DIR: $REPORT_DIR"
 ```
@@ -105,208 +64,257 @@ echo "REPORT_DIR: $REPORT_DIR"
 
 {{LEARNINGS_SEARCH}}
 
-{{UX_PRINCIPLES}}
+## Factorial Design Standards Reference
 
-## Phases 1-6: Design Audit Baseline
+These are the standards to audit against. Every finding must cite which standard is violated.
 
-{{DESIGN_METHODOLOGY}}
+### Typography
+- **Font:** DM Sans only. No system fonts, no other Google Fonts.
+- **Headings:** Bold (700) or Semi-bold (600). Never Regular for H1/H2.
+- **Body:** Regular (400) or Medium (500) for emphasis.
+- **Scale:** Use the design system type scale. No arbitrary `text-[Npx]` unless justified.
+- **Line height:** 1.4–1.6 for body, 1.1–1.3 for headings. Tight headings look intentional.
 
-{{DESIGN_HARD_RULES}}
+### Color
+- **Palette:** `neutral-*`, `radical-*` (brand red), `viridian-*` (teal), `sunbeam-*`, `tangerine-*`, `jade-*`.
+- **No hardcoded hex.** All colors via design tokens.
+- **Contrast:** Minimum 4.5:1 for body text, 3:1 for large text (WCAG AA).
+- **Primary actions:** `radical` (brand red). Not blue, not generic.
 
-Record baseline design score and AI slop score at end of Phase 6.
+### Spacing
+- **System:** 4px grid. All spacing should be multiples of 4px.
+- **Section padding:** Consistent across sibling sections (check top/bottom padding).
+- **Component internal spacing:** Consistent with design-system component definitions.
+
+### Animation
+- **RevealOnScroll:** Standard reveal for sections. Elements above fold should NOT wait to reveal.
+- **Duration:** 200–500ms for UI feedback, 500–800ms for scroll reveals. Nothing faster than 150ms (jarring) or slower than 1000ms (sluggish).
+- **Easing:** `ease-out` for enters, `ease-in` for exits. No linear.
+- **Lottie:** Files above the fold should have `autoplay` but lazy-load the file.
+
+### Responsiveness
+- Breakpoints: **375px** (mobile), **768px** (tablet), **1440px** (desktop).
+- No horizontal overflow at any breakpoint.
+- Touch targets ≥ 44px on mobile.
+- Typography scales appropriately (mobile can be slightly smaller, but still readable).
+
+### AI Slop Patterns (red flags)
+- Generic stock-photo style illustrations
+- Bland blue/grey color scheme (not Factorial brand)
+- Symmetric, corporate-looking layouts with no visual tension
+- "Card grid with icons and titles" as the only layout pattern
+- Overuse of rounded-full pills for all tags
+- Shadow overuse (every card has the same shadow)
 
 ---
 
-## Output Structure
+## Phase 1: First Impression (5 seconds)
 
+```bash
+$B goto <target-url>
+$B screenshot "$REPORT_DIR/screenshots/first-impression.png"
 ```
-~/.gstack/projects/$SLUG/designs/design-audit-{YYYYMMDD}/
-├── design-audit-{domain}.md                  # Structured report
-├── screenshots/
-│   ├── first-impression.png                  # Phase 1
-│   ├── {page}-annotated.png                  # Per-page annotated
-│   ├── {page}-mobile.png                     # Responsive
-│   ├── {page}-tablet.png
-│   ├── {page}-desktop.png
-│   ├── finding-001-before.png                # Before fix
-│   ├── finding-001-target.png                # Target mockup (if generated)
-│   ├── finding-001-after.png                 # After fix
-│   └── ...
-└── design-baseline.json                      # For regression mode
+
+Ask: what is the single most important visual problem? Don't describe what you see — describe what's wrong.
+
+Record first-impression score (1–10) with one-sentence justification.
+
+---
+
+## Phase 2: Brand Compliance
+
+```bash
+$B viewport 1440 900
+$B goto <target-url>
+```
+
+Check:
+- Is DM Sans loading? (`$B eval "document.fonts.check('16px DM Sans')"`)
+- Are colors from the Factorial palette? (visually scan, then grep source for hardcoded hex)
+- Do CTAs use `radical` (brand red)? Not blue, not green.
+- Is the visual identity cohesive across sections?
+
+```bash
+# Check for hardcoded colors in source
+grep -rn '#[0-9a-fA-F]\{3,6\}\b\|rgb(\|rgba(' webpage/src --include="*.tsx" --include="*.css" | grep -v "//\|/\*" | head -20
 ```
 
 ---
 
-{{DESIGN_OUTSIDE_VOICES}}
+## Phase 3: Visual Hierarchy
 
-## Phase 7: Triage
-
-Sort all discovered findings by impact, then decide which to fix:
-
-- **High Impact:** Fix first. These affect the first impression and hurt user trust.
-- **Medium Impact:** Fix next. These reduce polish and are felt subconsciously.
-- **Polish:** Fix if time allows. These separate good from great.
-
-Mark findings that cannot be fixed from source code (e.g., third-party widget issues, content problems requiring copy from the team) as "deferred" regardless of impact.
+For each major section:
+1. Screenshot it
+2. Ask: can you tell what's most important in 3 seconds?
+3. Check heading sizes create clear hierarchy (H1 > H2 > H3 > body)
+4. Check CTA is visually dominant
+5. Check whitespace is intentional (not accidental)
 
 ---
 
-## Phase 8: Fix Loop
+## Phase 4: Spacing Audit
+
+```bash
+$B eval "(() => { const els = document.querySelectorAll('section, [class*=\"section\"]'); return Array.from(els).map(el => { const s = window.getComputedStyle(el); return {tag: el.tagName, pt: s.paddingTop, pb: s.paddingBottom}; }).slice(0,10); })()"
+```
+
+Check:
+- Section top/bottom padding is consistent across sibling sections
+- No accidental `padding: 0` on content sections
+- Spacing within components matches design system
+
+---
+
+## Phase 5: Responsive Audit
+
+Test all three breakpoints:
+
+```bash
+# Mobile
+$B viewport 375 812
+$B goto <target-url>
+$B screenshot "$REPORT_DIR/screenshots/mobile-375.png"
+
+# Tablet
+$B viewport 768 1024
+$B goto <target-url>
+$B screenshot "$REPORT_DIR/screenshots/tablet-768.png"
+
+# Desktop
+$B viewport 1440 900
+$B goto <target-url>
+$B screenshot "$REPORT_DIR/screenshots/desktop-1440.png"
+```
+
+For each breakpoint, check:
+- No horizontal overflow
+- Text doesn't overflow containers
+- Nav collapses correctly on mobile
+- Touch targets ≥ 44px on mobile
+- Images don't distort or pixelate
+
+---
+
+## Phase 6: Animation Quality
+
+```bash
+# Check RevealOnScroll elements
+$B eval "document.querySelectorAll('[data-reveal], [class*=\"reveal\"]').length"
+```
+
+Scroll through the page:
+```bash
+$B scroll 0 300
+$B screenshot "$REPORT_DIR/screenshots/scroll-1.png"
+$B scroll 0 600
+$B screenshot "$REPORT_DIR/screenshots/scroll-2.png"
+```
+
+Check:
+- RevealOnScroll triggers at the right scroll position
+- No elements stuck hidden below the fold
+- No layout shift during animation (CLS)
+- Animation feels smooth and intentional, not mechanical
+
+---
+
+## Phase 7: AI Slop Detection
+
+Scan for AI slop patterns using the reference list. Rate the AI slop score (0–10, where 0 = no slop, 10 = generic SaaS template):
+
+- [ ] Generic color scheme (not Factorial brand)
+- [ ] "Card grid with icons" as primary layout pattern
+- [ ] All-same shadow / border-radius on cards
+- [ ] No visual tension or intentional asymmetry
+- [ ] Stock-photo style hero
+- [ ] Every section centered text
+
+If slop score > 5: this is a design problem to address.
+
+---
+
+## Phase 8: Triage
+
+Sort findings by impact:
+- **High:** Broken hierarchy, off-brand colors, horizontal overflow at any breakpoint
+- **Medium:** Spacing inconsistency, animation issue, wrong font weight
+- **Polish:** Minor spacing, hover state not quite right, type scale slightly off
+
+---
+
+## Phase 9: Fix Loop
 
 For each fixable finding, in impact order:
 
-### 8a. Locate source
-
+### 9a. Locate source
 ```bash
-# Search for CSS classes, component names, style files
-# Glob for file patterns matching the affected page
+grep -rn "<ComponentName\|className=\"[class]\"" webpage/src --include="*.tsx" | head -5
 ```
 
-- Find the source file(s) responsible for the design issue
-- ONLY modify files directly related to the finding
-- Prefer CSS/styling changes over structural component changes
-
-### 8a.5. Target Mockup (if DESIGN_READY)
-
-If the gstack designer is available and the finding involves visual layout, hierarchy, or spacing (not just a CSS value fix like wrong color or font-size), generate a target mockup showing what the corrected version should look like:
-
+### 9b. Target Mockup (if DESIGN_READY)
+For layout/hierarchy/spacing findings (not just CSS value fixes), generate a target mockup:
 ```bash
-$D generate --brief "<description of the page/component with the finding fixed, referencing DESIGN.md constraints>" --output "$REPORT_DIR/screenshots/finding-NNN-target.png"
+$D generate --brief "<what the fixed version should look like, within Factorial design standards>" --output "$REPORT_DIR/screenshots/finding-NNN-target.png"
 ```
 
-Show the user: "Here's the current state (screenshot) and here's what it should look like (mockup). Now I'll fix the source to match."
+### 9c. Fix
+CSS-first. Prefer `className` changes over structural changes. Read source code, make minimal fix.
 
-This step is optional — skip for trivial CSS fixes (wrong hex color, missing padding value). Use it for findings where the intended design isn't obvious from the description alone.
-
-### 8b. Fix
-
-- Read the source code, understand the context
-- Make the **minimal fix** — smallest change that resolves the design issue
-- If a target mockup was generated in 8a.5, use it as the visual reference for the fix
-- CSS-only changes are preferred (safer, more reversible)
-- Do NOT refactor surrounding code, add features, or "improve" unrelated things
-
-### 8c. Commit
-
+### 9d. Commit
 ```bash
-git add <only-changed-files>
+git add <changed-files>
 git commit -m "style(design): FINDING-NNN — short description"
 ```
 
-- One commit per fix. Never bundle multiple fixes.
-- Message format: `style(design): FINDING-NNN — short description`
-
-### 8d. Re-test
-
-Navigate back to the affected page and verify the fix:
-
+### 9e. Re-verify
 ```bash
 $B goto <affected-url>
 $B screenshot "$REPORT_DIR/screenshots/finding-NNN-after.png"
-$B console --errors
-$B snapshot -D
 ```
+Before/after pair for every fix.
 
-Take **before/after screenshot pair** for every fix.
+### 9f. Self-Regulation
 
-### 8e. Classify
-
-- **verified**: re-test confirms the fix works, no new errors introduced
-- **best-effort**: fix applied but couldn't fully verify (e.g., needs specific browser state)
-- **reverted**: regression detected → `git revert HEAD` → mark finding as "deferred"
-
-### 8e.5. Regression Test (design-review variant)
-
-Design fixes are typically CSS-only. Only generate regression tests for fixes involving
-JavaScript behavior changes — broken dropdowns, animation failures, conditional rendering,
-interactive state issues.
-
-For CSS-only fixes: skip entirely. CSS regressions are caught by re-running /design-review.
-
-If the fix involved JS behavior: follow the same procedure as /qa Phase 8e.5 (study existing
-test patterns, write a regression test encoding the exact bug condition, run it, commit if
-passes or defer if fails). Commit format: `test(design): regression test for FINDING-NNN`.
-
-### 8f. Self-Regulation (STOP AND EVALUATE)
-
-Every 5 fixes (or after any revert), compute the design-fix risk level:
-
+Every 5 fixes, compute risk:
 ```
-DESIGN-FIX RISK:
-  Start at 0%
-  Each revert:                        +15%
-  Each CSS-only file change:          +0%   (safe — styling only)
-  Each JSX/TSX/component file change: +5%   per file
-  After fix 10:                       +1%   per additional fix
-  Touching unrelated files:           +20%
+Start 0%
+Each revert: +15%
+Each JSX/TSX change: +5%
+After fix 10: +1% per additional
 ```
-
-**If risk > 20%:** STOP immediately. Show the user what you've done so far. Ask whether to continue.
-
-**Hard cap: 30 fixes.** After 30 fixes, stop regardless of remaining findings.
-
----
-
-## Phase 9: Final Design Audit
-
-After all fixes are applied:
-
-1. Re-run the design audit on all affected pages
-2. If target mockups were generated during the fix loop AND `DESIGN_READY`: run `$D verify --mockup "$REPORT_DIR/screenshots/finding-NNN-target.png" --screenshot "$REPORT_DIR/screenshots/finding-NNN-after.png"` to compare the fix result against the target. Include pass/fail in the report.
-3. Compute final design score and AI slop score
-4. **If final scores are WORSE than baseline:** WARN prominently — something regressed
+If risk > 20%: STOP and ask whether to continue. Hard cap: 20 fixes.
 
 ---
 
 ## Phase 10: Report
 
-Write the report to `$REPORT_DIR` (already set up in the setup phase):
+Write to `$REPORT_DIR/design-audit-{domain}.md`:
 
-**Primary:** `$REPORT_DIR/design-audit-{domain}.md`
-
-**Also write a summary to the project index:**
-```bash
-{{SLUG_SETUP}}
 ```
-Write a one-line summary to `~/.gstack/projects/{slug}/{user}-{branch}-design-audit-{datetime}.md` with a pointer to the full report in `$REPORT_DIR`.
+DESIGN AUDIT — [domain] — [date]
+══════════════════════════════════
+First impression score: N/10
+AI slop score: N/10
+Breakpoints tested: 375px, 768px, 1440px
 
-**Per-finding additions** (beyond standard design audit report):
-- Fix Status: verified / best-effort / reverted / deferred
-- Commit SHA (if fixed)
-- Files Changed (if fixed)
-- Before/After screenshots (if fixed)
+Findings: N total
+  High: N (fixed: X, deferred: Y)
+  Medium: N
+  Polish: N
 
-**Summary section:**
-- Total findings
-- Fixes applied (verified: X, best-effort: Y, reverted: Z)
-- Deferred findings
-- Design score delta: baseline → final
-- AI slop score delta: baseline → final
+Design score: N/10 → N/10 (after fixes)
 
-**PR Summary:** Include a one-line summary suitable for PR descriptions:
-> "Design review found N issues, fixed M. Design score X → Y, AI slop score X → Y."
-
----
-
-## Phase 11: TODOS.md Update
-
-If the repo has a `TODOS.md`:
-
-1. **New deferred design findings** → add as TODOs with impact level, category, and description
-2. **Fixed findings that were in TODOS.md** → annotate with "Fixed by /design-review on {branch}, {date}"
+PR Summary: "Design review found N issues, fixed M. Slop score X → Y."
+```
 
 ---
 
 {{LEARNINGS_LOG}}
 
-{{GBRAIN_SAVE_RESULTS}}
+## Rules
 
-## Additional Rules (design-review specific)
-
-11. **Clean working tree required.** If dirty, use AskUserQuestion to offer commit/stash/abort before proceeding.
-12. **One commit per fix.** Never bundle multiple design fixes into one commit.
-13. **Only modify tests when generating regression tests in Phase 8e.5.** Never modify CI configuration. Never modify existing tests — only create new test files.
-14. **Revert on regression.** If a fix makes things worse, `git revert HEAD` immediately.
-15. **Self-regulate.** Follow the design-fix risk heuristic. When in doubt, stop and ask.
-16. **CSS-first.** Prefer CSS/styling changes over structural component changes. CSS-only changes are safer and more reversible.
-17. **DESIGN.md export.** You MAY write a DESIGN.md file if the user accepts the offer from Phase 2.
+- **CSS-first.** Prefer styling changes over structural component changes.
+- **One commit per fix.** Never bundle multiple design fixes.
+- **Factorial standards, not generic.** Don't flag things that are fine by Factorial standards just because they'd be unusual elsewhere.
+- **Three breakpoints.** Always test 375/768/1440.
+- **Before/after screenshots.** Every fix needs visual evidence.

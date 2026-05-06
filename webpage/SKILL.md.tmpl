@@ -1,0 +1,126 @@
+---
+name: webpage
+preamble-tier: 3
+version: 1.0.0
+description: |
+  Route Factorial webpage (marketing site) work to the right skill. Start here
+  for any task in the webpage/ project — pages, CMS components, design system
+  elements, styling, i18n, forms, or campaigns. Classifies the task and loads
+  the smallest relevant child skill. (designeros)
+allowed-tools:
+  - Bash
+  - Read
+  - Edit
+  - Write
+  - Grep
+  - Glob
+triggers:
+  - webpage
+  - marketing site
+  - next.js marketing
+  - datocms
+  - cms component
+  - landing page
+---
+
+{{PREAMBLE}}
+
+# Webpage — Factorial Marketing Site Router
+
+You are running the `/webpage` routing skill. Classify the task, then load the
+smallest relevant child skill.
+
+---
+
+## Quick Decision Tree
+
+```text
+Webpage task?
+├─ Creating or modifying a page? ──────────────> /webpage-page
+│  (route, layout, metadata, ISR, campaign,
+│   landing page, signup flow, data fetching)
+│
+├─ Creating or modifying a CMS section? ───────> /webpage-cms-component
+│  (DatoCMS-driven component, layouts.ts,
+│   DynamicSection registration, structured text)
+│
+├─ DatoCMS schema migration? ──────────────────> /datocms-migration
+│  (new model, field, block, migration script,
+│   promoting to production, migration debugging)
+│
+├─ Design system elements or styling work? ────> /webpage-design-system
+│  (atoms, molecules, organisms, tokens,
+│   mappings, Tailwind, responsive design)
+│
+└─ Mixed task? ────────────────────────────────> Load the primary skill first,
+   (e.g. new campaign page with custom hero)      then load child skills as
+                                                   needed during implementation.
+```
+
+---
+
+## Project Context (Always Apply)
+
+| Property | Value |
+|---|---|
+| **Location** | `webpage/` in the monorepo root |
+| **Framework** | Next.js 15 (App Router) + TypeScript + React 19 |
+| **Styling** | Tailwind CSS 3 with custom design tokens |
+| **CMS** | DatoCMS (structured text, layout fields, visual select) |
+| **i18n** | FormatJS/react-intl (Crowdin) — `intl.formatMessage()` only |
+| **Design System** | Custom atomic design at `webpage/design-system/` |
+| **Formatting** | OxFmt — single quotes, no semicolons, 2-space indent |
+| **Linting** | OxLint (not ESLint) |
+| **Animations** | Framer Motion, GSAP, Lottie |
+| **Dev server** | `pnpm dev` → `https://webpage-{tld}.local.factorial.dev` |
+
+---
+
+## Global Rules
+
+### DO
+
+- Use design system atoms/molecules/organisms before creating custom elements.
+- Use token mappings (`design-system/mappings/`) for colors, font sizes, shadows, z-index.
+- Use `intl.formatMessage({ defaultMessage: '...' })` for all hardcoded UI strings.
+- Use `cn()` from `classnames` for composing Tailwind class strings.
+- Follow OxFmt: single quotes, no semicolons, 2-space indent.
+- Mark client components with `'use client'` at the top.
+- Use `findTldByLocale(locale)` + `notFound()` guard in every page.
+- Use `useFactorialContext()` in client components for locale/host data.
+
+### DON'T
+
+- Don't install new dependencies — check `package.json` first.
+- Don't import from `@factorialco/f0-react` — unused here.
+- Don't hardcode color values (hex/rgb) — use token-based Tailwind classes.
+- Don't create `.css` / `.module.css` files (rare exception: SCSS pseudo-elements).
+- Don't use `i18n.t()` or `<FormattedMessage>` — use `intl.formatMessage()`.
+- Don't use ESLint or Prettier — this project uses OxLint and OxFmt.
+
+---
+
+## Validation (All Webpage Work)
+
+- No hardcoded color values, pixel spacing, or inline styles.
+- Design system components reused where possible.
+- `'use client'` only on components that need browser APIs or interactivity.
+- `pnpm lint` from `webpage/` directory.
+- `pnpm format <changed-files>` from `webpage/` directory.
+- `pnpm test` for any touched test files.
+
+---
+
+## Key Docs (Read When Needed)
+
+| Topic | File |
+|---|---|
+| i18n conventions | `webpage/docs/development/i18n.md` |
+| Tailwind conventions | `webpage/docs/development/tailwind.md` |
+| DatoCMS component architecture | `webpage/docs/datocms/components.md` |
+| DatoCMS data fetching | `webpage/docs/datocms/fetching.md` |
+| DatoCMS overview | `webpage/docs/datocms/overview.md` |
+| DatoCMS migrations | `webpage/docs/datocms/migrations.md` |
+| Form builder | `webpage/docs/features/forms.md` |
+| Signup flow | `webpage/docs/features/signup-flow.md` |
+| Release/deployment | `webpage/docs/deployment/release-process.md` |

@@ -1,0 +1,226 @@
+---
+name: animate-this
+preamble-tier: 3
+version: 1.0.0
+description: |
+  Animation and interaction workflow for the Factorial webpage. Decides whether to
+  animate, which library to use, implements the animation, and QAs it. Covers
+  Framer Motion, GSAP ScrollTrigger, scroll experiences, and interaction polish.
+  Use when something feels static, you want to add motion, or you want to improve
+  an existing interaction.
+allowed-tools:
+  - Read
+  - Edit
+  - Write
+  - Bash
+triggers:
+  - animate this
+  - add animation
+  - feels static
+  - scroll effect
+  - parallax
+  - motion
+  - interaction
+  - make this feel better
+  - add motion
+
+---
+
+{{PREAMBLE}}
+
+# /animate-this — Animation & Interaction Workflow
+
+Decides what to animate, which tool to use, implements it, and verifies it.
+You drive. The user can skip any step.
+
+---
+
+## Present the Step Plan
+
+```
+/animate-this workflow
+
+  [1] Animation decision (should it animate? what kind?)
+  [2] Library selection (Framer Motion / GSAP / CSS)
+  [3] Implementation
+  [4] Reduced motion + performance check
+  [5] QA
+  [6] Combined report
+
+Type a step number to skip, or press Enter to start with step 1.
+```
+
+---
+
+## Step 1 — Animation Decision
+
+Before writing any code, run the decision framework.
+
+**Ask the user:**
+> "What are you animating and what should it communicate?"
+
+Then apply the filter:
+
+**Should it animate at all?**
+Animations earn their place only if they do one of:
+- Reveal information (scroll reveal, progressive disclosure)
+- Confirm an action (button feedback, form submit)
+- Guide attention (new content appearing, state change)
+- Create spatial continuity (layout transition, shared element)
+
+If none of the above → recommend **no animation**. Explain why. The user can override.
+
+**What type is it?**
+
+| Type | Description | Best tool |
+|------|-------------|-----------|
+| Component enter/exit | Element appearing or disappearing | Framer Motion |
+| Scroll reveal | Element animates in as you scroll | Framer Motion `whileInView` |
+| Scroll-linked scrub | Animation tied to exact scroll position | GSAP ScrollTrigger |
+| Pinned narrative | Section stays pinned while content changes | GSAP ScrollTrigger |
+| Parallax | Layers move at different speeds | Framer Motion `useScroll` or GSAP |
+| Gesture / drag | Physics-based interaction | Framer Motion spring |
+| Hover micro-interaction | Subtle feedback on hover | CSS or Framer Motion |
+| Page transition | Route change animation | Framer Motion AnimatePresence |
+| Complex sequence | Multiple elements choreographed | GSAP timeline |
+
+Output the decision:
+
+```markdown
+## Animation Decision
+
+**Animating:** [what]
+**Purpose:** [which of the 4 reasons above]
+**Type:** [from table above]
+**Tool:** [CSS / Framer Motion / GSAP ScrollTrigger]
+**Reasoning:** [one sentence]
+```
+
+---
+
+## Step 2 — Specifics
+
+Based on the decision, apply the right sub-skill knowledge:
+
+### Framer Motion
+- Enter: `initial={{ opacity: 0, y: 20 }}` → `animate={{ opacity: 1, y: 0 }}`
+- Scroll reveal: `whileInView` + `viewport={{ once: true, margin: '-80px' }}`
+- Exit: wrap in `AnimatePresence`, add `exit` prop
+- Stagger: `variants` with `staggerChildren: 0.07`
+- Easing: `[0.23, 1, 0.32, 1]` (never built-in `ease`)
+- Duration: 0.18–0.35s for reveals, 0.12–0.22s for micro-interactions
+
+### GSAP ScrollTrigger
+- Always `ease: 'none'` on scrubbed tweens
+- Pin: animate children inside, not the pinned element itself
+- `scrub: 0.5–1` for physical feel
+- Cleanup: `ctx.revert()` or `ScrollTrigger.getAll().forEach(t => t.kill())` on unmount
+
+### CSS (hover, simple transitions)
+- Only `transform` and `opacity` — never `width`, `height`, `left`, `top`
+- Wrap hover effects in `@media (hover: hover) and (pointer: fine)`
+- Duration: 150–200ms ease-out for hover
+
+**Scale animations — always:**
+- Start from `scale(0.95)` not `scale(0)` — never appear from nothing
+- Exit to `scale(0.95)` + `opacity: 0`
+
+---
+
+## Step 3 — Implementation
+
+Write the animation. Then verify:
+
+**Performance checklist:**
+- [ ] Only animating `transform` and `opacity`
+- [ ] No `transition: all` — enumerate specific properties
+- [ ] `will-change: transform` added on elements with heavy scroll animation
+- [ ] Framer Motion `x`/`y` props NOT used for translate (use `translateX` / full `transform` string)
+- [ ] No looping animations that can't be stopped
+
+**React/Next.js checklist:**
+- [ ] Animated component has `'use client'` directive
+- [ ] `'use client'` boundary is as deep as possible (not the whole section)
+- [ ] GSAP cleanup in `useEffect` return / `ctx.revert()`
+- [ ] No GSAP setup outside `useEffect`
+
+---
+
+## Step 4 — Reduced Motion + Mobile
+
+**Reduced motion (mandatory):**
+
+Framer Motion global:
+```tsx
+<MotionConfig reducedMotion="user">{children}</MotionConfig>
+```
+
+GSAP / manual:
+```ts
+const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+if (prefersReduced) {
+  // skip parallax, large transforms, scrub
+  // keep opacity fades if helpful
+  return
+}
+```
+
+Rule: not zero animation — fewer and gentler. Opacity fades are fine for reduced-motion users.
+
+**Mobile:**
+- Reduce parallax intensity: `isMobile ? '-10%' : '-25%'`
+- Test on real device — DevTools throttle is misleading
+- Disable heavy scroll-pinning on mobile if it would trap users
+
+---
+
+## Step 5 — QA
+
+Test matrix:
+
+| | 375px | 768px | 1440px |
+|---|---|---|---|
+| **en-US** | ☐ | ☐ | ☐ |
+| **es-ES** | ☐ | ☐ | ☐ |
+
+Additional:
+- [ ] Animation plays correctly on first load
+- [ ] Animation doesn't re-play on scroll back (if `once: true` intended)
+- [ ] No layout shift caused by animation initial state
+- [ ] No JS console errors
+- [ ] Looks correct with `prefers-reduced-motion: reduce` enabled
+  (in macOS: System Preferences → Accessibility → Reduce Motion)
+- [ ] Scroll animations work on Safari (check ScrollTrigger + iOS specifically)
+
+---
+
+## Step 6 — Combined Report
+
+```markdown
+## /animate-this Report — [Component/Section name]
+
+### Summary
+- ✅ Added: [what animation, what it communicates]
+- 🎯 Purpose: [which of the 4 animation reasons]
+- 🛠 Tool: [Framer Motion / GSAP / CSS]
+
+### Decision
+[animation decision block from step 1]
+
+### Implementation Notes
+[key code decisions, easing used, duration, any gotchas]
+
+### Performance
+[checklist results — anything flagged?]
+
+### Reduced Motion
+[what the reduced-motion version looks like]
+
+### QA Results
+[breakpoint/locale matrix]
+
+### Open Items
+[anything to revisit, deferred work]
+```
+
+Save to `~/.designeros/projects/<component-name>/animation-report.md`

@@ -1,0 +1,224 @@
+---
+name: new-section
+preamble-tier: 3
+version: 1.0.0
+description: |
+  End-to-end workflow for building a new CMS section on the Factorial webpage.
+  Chains scope → implementation → design polish → QA with a single combined
+  report. Use when adding a new DatoCMS-driven section to any webpage page.
+allowed-tools:
+  - Read
+  - Edit
+  - Write
+  - Bash
+triggers:
+  - new section
+  - new cms section
+  - new block
+  - add a section
+  - build a section
+  - datocms section
+
+---
+
+{{PREAMBLE}}
+
+# /new-section — New CMS Section Workflow
+
+Full workflow for a new DatoCMS-driven section on the Factorial webpage (`webpage/`).
+You drive. The user can skip any step — always present the plan first.
+
+---
+
+## Present the Step Plan
+
+Before doing anything, show:
+
+```
+/new-section workflow
+
+  [1] Brief confirmation (what section, which pages, content model)
+  [2] DatoCMS schema design (fields, layout variants, blocks)
+  [3] Component implementation (5-file structure)
+  [4] Migration script
+  [5] Design polish review
+  [6] QA (3 breakpoints × 2 locales)
+  [7] Combined report
+
+Type a step number to skip, or press Enter to start with step 1.
+```
+
+---
+
+## Step 1 — Brief Confirmation
+
+Ask in a single block:
+
+1. **Section name** — what will this be called in the codebase? (e.g. `FeatureGrid`, `TestimonialCarousel`)
+2. **Which pages** will it appear on?
+3. **Layout variants** — does it need multiple visual layouts (e.g. left-aligned, centered, dark background)?
+4. **Content** — what fields does an editor need to fill in? (headline, body, images, CTA, list items, etc.)
+5. **Any reference section** that looks similar, in our codebase or elsewhere?
+
+Produce a one-paragraph summary and confirm before proceeding.
+
+---
+
+## Step 2 — DatoCMS Schema Design
+
+Design the content model before writing any code. Output:
+
+```markdown
+## DatoCMS Model: [SectionName]
+
+### Root fields
+| Field name       | Type              | Notes |
+|------------------|-------------------|-------|
+| internal_title   | string (required) | Editor label — always present |
+| section_id       | string (slug)     | For anchor links |
+| layout           | single_line_string (visual_select) | Variants: ... |
+| [other fields]   | ...               | ... |
+
+### Blocks (if needed)
+- [BlockName]: [fields]
+
+### Layout variants
+- `default` — [description]
+- `[variant]` — [description]
+```
+
+Flag anything that needs a migration (new model) vs. extending an existing one.
+
+---
+
+## Step 3 — Component Implementation
+
+Follow the 5-file structure from `/webpage-cms-component`:
+
+```
+webpage/components/Cms/[SectionName]/
+├── index.tsx          — main component, getLayoutConfig()
+├── layouts.ts         — layout config map
+├── components.tsx     — sub-components (non-media)
+├── mediaComponents.tsx — image/video components
+└── blocks/            — block renderers (if needed)
+```
+
+**Checklist:**
+- [ ] `getLayoutConfig()` used with safe fallback
+- [ ] `TitleDescription` used for any heading + body combo
+- [ ] Token mappings used for all colors (never direct Tailwind color classes)
+- [ ] DM Sans font — no system font fallback
+- [ ] All text through design system text components
+- [ ] `intl.formatMessage()` for any hardcoded strings (never raw strings in JSX)
+- [ ] Registered in `DynamicSection` router (hero = static import, rest = `next/dynamic`)
+- [ ] Storybook story added
+
+---
+
+## Step 4 — Migration Script
+
+Generate the DatoCMS migration file.
+
+File: `webpage/lib/datoCms/migrations/<TIMESTAMP>_add_[section_name]_section.ts`
+
+Use `@datocms/cma-client` (NOT `@datocms/cma-client-node`).
+
+**Critical gotchas to check:**
+- [ ] All locale keys present in every `create`/`update` (missing = data destruction)
+- [ ] Block item type IDs are from the correct environment (staging ≠ production)
+- [ ] `section_id` field uses slug validator regex
+- [ ] Run `pnpm exec datocms migrations:run --dry-run` from `webpage/` to validate
+
+---
+
+## Step 5 — Design Polish Review
+
+Apply the `/design-engineer` lens to the finished component. Check:
+
+**Animation:**
+- Does it need an enter animation? Apply the decision framework — does it communicate state change or guide attention?
+- If yes: `initial={{ opacity: 0, y: 20 }}` + `whileInView` + `viewport={{ once: true }}`
+- Correct easing: `[0.23, 1, 0.32, 1]`
+
+**Spacing & rhythm:**
+- Consistent spacing scale — no magic numbers
+- Enough whitespace (content breathes)
+
+**Interactive states:**
+- All interactive elements: default, hover, active, focus-visible
+- Hover wrapped in `@media (hover: hover) and (pointer: fine)`
+
+**Reduced motion:**
+- `MotionConfig reducedMotion="user"` or CSS `prefers-reduced-motion` media query
+
+Output a **review table**:
+
+| Before | After | Why |
+|--------|-------|-----|
+| ... | ... | ... |
+
+---
+
+## Step 6 — QA
+
+Test at all three breakpoints × two locales minimum:
+
+| | 375px | 768px | 1440px |
+|---|---|---|---|
+| **en-US** | ☐ | ☐ | ☐ |
+| **es-ES** | ☐ | ☐ | ☐ |
+
+Spanish is ~20% longer — check:
+- [ ] No text overflow or truncation
+- [ ] No broken layouts caused by longer strings
+- [ ] CTA buttons still readable at full Spanish length
+
+Also check:
+- [ ] No JS errors in console
+- [ ] Images load (correct alt text)
+- [ ] Section anchor ID works if `section_id` was set
+- [ ] Editor can fill all fields in DatoCMS without confusion
+
+URLs to test (replace `{tld}` with `us`, `es`, `de` etc.):
+`https://webpage-{tld}.local.factorial.dev/[page-path]`
+
+---
+
+## Step 7 — Combined Report
+
+Output a single report:
+
+```markdown
+## /new-section Report — [SectionName]
+
+### Summary
+- ✅ Built: [what was implemented]
+- ⚠️ Watch: [anything to monitor post-launch]
+- 📋 Editor action needed: [any content to fill, if applicable]
+
+### DatoCMS Model
+[schema summary]
+
+### Component
+[file list + key decisions]
+
+### Design Notes
+[review table from step 5]
+
+### QA Results
+[breakpoint/locale matrix]
+
+### Open Items
+[anything deferred, follow-up needed]
+```
+
+---
+
+## Meta Rules
+
+- Always present the step plan and wait for confirmation before starting.
+- If the user says "skip [step]", skip it cleanly — no guilt.
+- If anything in step 2 (schema) is unclear, resolve it before writing any code.
+  A wrong schema is expensive to undo after migration.
+- Save the report to `~/.designeros/projects/<section-name>/report.md`

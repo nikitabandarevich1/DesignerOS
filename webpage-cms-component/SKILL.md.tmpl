@@ -1,0 +1,242 @@
+---
+name: webpage-cms-component
+preamble-tier: 3
+version: 1.0.0
+description: |
+  Create and modify CMS section components for the Factorial webpage. Use when
+  building or editing DatoCMS-driven sections rendered via DynamicSection, with
+  layouts.ts, structured text, and media blocks. (designeros)
+allowed-tools:
+  - Bash
+  - Read
+  - Edit
+  - Write
+  - Grep
+  - Glob
+triggers:
+  - cms component
+  - dynamicsection
+  - layouts.ts
+  - datocms section
+  - cms section
+---
+
+{{PREAMBLE}}
+
+# Webpage CMS Component Creation & Modification
+
+## Purpose
+
+Guide creation and modification of CMS section components in `webpage/components/Cms/`
+that are driven by DatoCMS and rendered via the `Page/DynamicSection` router.
+
+## When to use
+
+- Creating a new CMS section (feature, banner, testimonial, cards, etc.)
+- Modifying an existing CMS component's layout, behavior, or rendering
+- Adding a layout variant to an existing component
+- Registering a component in `DynamicSection`
+- Working with DatoCMS structured text, media blocks, or action blocks
+
+---
+
+## Architecture
+
+### How CMS Pages Work
+
+1. Editors define page layouts in DatoCMS using modular sections.
+2. Each section has a `__typename`, a `layout` field, and content fields.
+3. `DynamicSection` routes each section by `__typename` to the correct component.
+4. The component calls `getLayoutConfig()` to merge DatoCMS data with layout config.
+5. Shared components (`TitleDescription`, `ActionsBlock`, media renderers) handle common patterns.
+
+### The DynamicSection Router
+
+**File:** `webpage/components/Page/DynamicSection/index.tsx`
+
+- Hero components are **statically imported** to avoid CLS.
+- All other components are **dynamically imported** via `next/dynamic`.
+- Each section is wrapped in `SectionErrorBoundary` and `ContentContextProvider`.
+
+---
+
+## Standard Procedure
+
+### Step 1: File Structure
+
+```
+components/Cms/YourComponent/
+  index.tsx            # Entry: getLayoutConfig() → TitleDescription → grid → content + media
+  layouts.ts           # Layout map + getLayoutConfig()
+  components.tsx       # Switch renderer for content blocks
+  mediaComponents.tsx  # Switch renderer for media blocks
+  blocks/              # Small sub-components
+```
+
+### Step 2: `layouts.ts`
+
+```tsx
+type LayoutType = {
+  columns?: number[]
+  columnsStart?: [number, number]
+  mediaPosition?: 'left' | 'right'
+}
+
+const layouts: Record<string, LayoutType> = {
+  'content-left': { columns: [6, 5], columnsStart: [1, 8], mediaPosition: 'right' },
+  'content-right': { columns: [6, 5], columnsStart: [7, 1], mediaPosition: 'left' },
+}
+
+export const getLayoutConfig = (layout: string, props: YourComponentConfigProps) => {
+  const baseConfig = layouts[layout]
+  if (!baseConfig) return props
+  return { ...props, ...baseConfig }
+}
+```
+
+### Step 3: `index.tsx`
+
+```tsx
+import cn from 'classnames'
+import TitleDescription from '../Components/TitleDescription'
+import YourComponents from './components'
+import YourMedia from './mediaComponents'
+import { getLayoutConfig } from './layouts'
+import RevealOnScroll from 'components/Animations/RevealOnScroll'
+
+const YourComponent = ({ layout, title, subtitle, description, sectionId, ...props }) => {
+  const { mediaPosition, columns, columnsStart, media, mainAction, components } = getLayoutConfig(layout, props)
+
+  return (
+    <div id={sectionId} className='relative overflow-hidden'>
+      <div className='grid relative z-10 md:container lg:grid-cols-12 lg:items-center gap-lg py-2xl sm:py-3xl lg:py-4xl'>
+        <div className={cn('px-lg md:px-0', `lg:col-span-${columns?.[0] || 12}`, columnsStart?.[0] && `lg:col-start-${columnsStart[0]}`)}>
+          <RevealOnScroll revealStyle='slide-up' delay={0.15}>
+            <TitleDescription title={title} subtitle={subtitle} description={description} />
+          </RevealOnScroll>
+          {[...(mainAction || []), ...(components || [])].map((component, index) => (
+            <RevealOnScroll key={index} revealStyle='slide-up' delay={0.3 + index * 0.15}>
+              <YourComponents component={component} />
+            </RevealOnScroll>
+          ))}
+        </div>
+        {media?.[0] && (
+          <div className={cn('order-last w-full lg:flex lg:flex-col lg:justify-center', mediaPosition === 'left' ? 'lg:order-first' : 'lg:order-none', `lg:col-span-${columns?.[1] || 6}`, columnsStart?.[1] && `lg:col-start-${columnsStart[1]}`)}>
+            <RevealOnScroll revealStyle='slide-up' delay={0.2}>
+              <YourMedia media={media[0]} />
+            </RevealOnScroll>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+export default YourComponent
+```
+
+### Step 4: `components.tsx` (content block switch)
+
+```tsx
+import ActionsBlock from '../Components/ActionsBlock'
+import Checklists from '../Components/Checklists'
+
+const YourComponents = ({ component }) => {
+  switch (component.__typename) {
+    case 'ComponentActionRecord': return <ActionsBlock actions={component} />
+    case 'ComponentChecklistRecord': return <Checklists checks={component.checks} />
+    default: return null
+  }
+}
+export default YourComponents
+```
+
+### Step 5: `mediaComponents.tsx` (media block switch)
+
+```tsx
+import CmsImage from 'design-system/atoms/Image'
+import DatoVideo from 'components/Cms/DatoVideo'
+import LottiePlayer from 'components/LottiePlayer'
+
+const YourMedia = ({ media }) => {
+  switch (media.__typename) {
+    case 'MediaImageRecord': return <CmsImage data={media.image} />
+    case 'MediaVideoRecord': return <DatoVideo data={media.video} />
+    case 'MediaLottieRecord': return <LottiePlayer src={media.lottieFile.url} />
+    default: return null
+  }
+}
+export default YourMedia
+```
+
+### Step 6: Register in DynamicSection
+
+Add to `webpage/components/Page/DynamicSection/index.tsx`:
+
+```tsx
+// 1. Dynamic import (non-hero components)
+const YourComponent = dynamic(() => import('components/Cms/YourComponent'), { ssr: true })
+
+// 2. Case in getSection() switch
+case 'YourComponentRecord':
+  return <YourComponent {...section} />
+```
+
+---
+
+## Shared Components (Always Prefer)
+
+| Component | Purpose | Import |
+|---|---|---|
+| `TitleDescription` | All title/subtitle/description rendering | `components/Cms/Components/TitleDescription` |
+| `ActionsBlock` | CTA/link action buttons | `components/Cms/Components/ActionsBlock` |
+| `CmsImage` | DatoCMS responsive image | `design-system/atoms/Image` |
+| `RevealOnScroll` | Scroll-triggered reveal animation | `components/Animations/RevealOnScroll` |
+| `FormBlockComponent` | Embedded form | `components/Cms/Components/FormBlockComponent` |
+| `Ratings` | Star ratings with source | `components/Cms/Components/Ratings` |
+
+## TitleDescription Layout Presets
+
+| Layout Key | Title Size (mobile/desktop) | Use Case |
+|---|---|---|
+| `big` | 5xl / 8xl | Large hero headings |
+| `bigNegative` | 5xl / 8xl | Large hero on dark backgrounds |
+| `regular` | 5xl / 6xl | Standard section headings |
+| `regularNegative` | 5xl / 6xl | Standard headings on dark backgrounds |
+| `default` | 3xl / 4xl | Default (most common) |
+| `defaultNegative` | 3xl / 4xl | Default on dark backgrounds |
+| `small` | xl / 2xl | Compact sections |
+
+---
+
+## DatoCMS Model Base Fields
+
+Every new model backing a CMS section must have:
+- `internal_title` — editorial-only
+- `section_id` — HTML `id` attribute for anchor links
+- `layout` — visual variant (Visual select field type)
+
+Content organized in four fieldsets: **Layout**, **Content**, **Media**, **Background**.
+
+## ContentContext
+
+Use `useContentContext()` to access:
+- `pageBackgroundColor` — page background (for SVG fills)
+- `largeText` — large text mode (auto-upgrades `default` layout to `regular`)
+
+---
+
+## Common Mistakes
+
+- Rendering title/description without `TitleDescription` — always use the shared component
+- Hardcoding layout positions instead of deriving from `layouts.ts`
+- Statically importing non-hero CMS components — use `next/dynamic`
+- Skipping the `layout` field on the DatoCMS model
+- Using raw hex/rgb colors instead of token mappings
+
+## Validation
+
+- Test with multiple layout variants to confirm `getLayoutConfig` works
+- Test with missing optional fields (no media, no description, no actions)
+- Test responsive behavior at 375px, 768px, 1440px
+- Test with Spanish copy — it's ~20% longer than English
+- `pnpm lint` and `pnpm format <changed-files>` from `webpage/`

@@ -1,0 +1,372 @@
+---
+name: webpage-design-system
+preamble-tier: 3
+version: 1.0.0
+description: |
+  Use and extend the Factorial webpage design system. Use when creating atoms,
+  molecules, or organisms, styling with Tailwind + design tokens, working with
+  responsive design, color mappings, typography, or Storybook stories. (designeros)
+allowed-tools:
+  - Bash
+  - Read
+  - Edit
+  - Write
+  - Grep
+  - Glob
+triggers:
+  - design system
+  - atom
+  - molecule
+  - organism
+  - tailwind token
+  - color mapping
+  - storybook
+---
+
+{{PREAMBLE}}
+
+# Webpage Design System & Styling
+
+## Purpose
+
+Guide usage and extension of the custom design system at `webpage/design-system/`,
+including atoms, molecules, organisms, design tokens, Tailwind mappings, and
+responsive styling patterns.
+
+---
+
+## Architecture: The Token Pipeline
+
+```
+tokens/*.json (raw CSS values)
+      |
+      v
+dist/js/tokens.ts (aggregated import)
+      |
+      +-----> tailwind.config.js (feeds Tailwind theme)
+      |
+      v
+mappings/*.ts (typed dictionaries: token name -> Tailwind class string)
+      |
+      v
+atoms/ -> molecules/ -> organisms/ -> components/Cms/
+```
+
+**Key principle:** Token JSON files are the single source of truth. Components never hardcode raw CSS values.
+
+---
+
+## Token Reference
+
+### Color Palette
+
+| Family | Purpose | Examples |
+|---|---|---|
+| `neutral` | Text, backgrounds, borders | `neutral-5` (lightest) → `neutral-120` (darkest) |
+| `radical` | Brand primary (red/pink), CTAs | `radical-100` = `#FF355E` |
+| `viridian` | Brand secondary (teal), links | `viridian-100` = `#07A2AD` |
+| `sunbeam` | Accent (yellow) | `sunbeam-100` |
+| `tangerine` | Accent (orange) | `tangerine-100` |
+| `jade` | Success (green) | `jade-100` |
+
+Shade scale: `120` (darkest) → `100` → `80` → `60` → `40` → `20` → `10` → `5` (lightest).
+
+Also: `white100`, `black100`, opacity variants like `neutral-100/5`.
+
+### Spacing Scale
+
+| Token | Value | Usage |
+|---|---|---|
+| `xs` | 8px | Small gaps, icon padding |
+| `sm` | 16px | Default padding |
+| `md` | 24px | Medium gaps |
+| `lg` | 32px | Section padding, grid gaps |
+| `xl` | 40px | Large section padding |
+| `2xl` | 48px | Component separation |
+| `3xl` | 80px | Major section breaks |
+| `4xl` | 112px | Large section spacing |
+
+Usage: `p-sm`, `gap-lg`, `mt-2xl`, `space-y-md`, etc.
+
+### Typography
+
+- **Font:** DM Sans only (loaded via `next/font/google`) — no system fonts
+- **Sizes:** `2xs` through `9xl` plus `liquid` (clamp)
+- **Weights:** `normal` (400), `medium` (500), `semibold` (600), `bold` (700)
+
+### Breakpoints (QA: test at 375px, 768px, 1440px)
+
+| Name | Width | Tailwind Prefix |
+|---|---|---|
+| `xs` | 400px | `xs:` |
+| `sm` | 640px | `sm:` |
+| `md` | 768px | `md:` |
+| `lg` | 1024px | `lg:` |
+| `xl` | 1208px | `xl:` |
+| `xxl` | 1440px | `xxl:` |
+
+Note: Spanish copy is ~20% longer than English — always verify at `es-ES` breakpoints.
+
+---
+
+## Using Token Mappings
+
+For **design-token-driven properties** (colors, shadows, z-index), use the mapping
+dictionaries instead of raw Tailwind classes. This gives TypeScript type safety.
+
+```tsx
+import colors from 'design-system/mappings/colors'
+import shadows from 'design-system/mappings/shadows'
+import zIndex from 'design-system/mappings/zIndex'
+
+// Backgrounds
+colors.backgrounds['radical120']        // -> 'bg-radical-120'
+colors.backgrounds['neutral5']          // -> 'bg-neutral-5'
+
+// Text colors
+colors.textColors['neutral100']         // -> 'text-neutral-100'
+colors.textColors['white100']           // -> 'text-white'
+
+// Hover states
+colors.backgroundColorsHover['radical100']  // -> 'hover:bg-radical-100'
+colors.textColorsHover['neutral100']        // -> 'hover:text-neutral-100'
+
+// Border colors
+colors.borderColors['radical100']       // -> 'border-radical-100'
+
+// Shadows & z-index
+shadows['lg']                           // -> 'shadow-lg'
+zIndex['modal']                         // -> 'z-modal'
+```
+
+### Mappings vs Direct Tailwind
+
+| Property | Use Mappings | Use Direct Tailwind |
+|---|---|---|
+| Colors (bg, text, border) | Always | Never |
+| Shadows | Always | Never |
+| Z-index | Always | Never |
+| Spacing (p, m, gap) | — | Always direct (`p-sm`, `gap-lg`) |
+| Layout (grid, flex) | — | Always direct |
+| Borders, radius | — | Always direct |
+
+---
+
+## Component Inventory
+
+### Atoms (`design-system/atoms/`)
+
+| Component | Purpose |
+|---|---|
+| `TextBase` | Foundation text — full prop control |
+| `TextHeader` | Bold heading with named sizes (`xl`/`l`/`m`/`s`/`xs`/`xxs`) |
+| `TextNormal` | Body text with sensible defaults |
+| `TextCaption` | Small text with optional line-clamp |
+| `Icon` | SVG icon rendering |
+| `Image` / `CmsImage` | DatoCMS-optimized responsive image |
+| `Logo` | Logo rendering |
+| `Href` | Styled link wrapper |
+| `Touchable` | Click/touch interaction wrapper |
+| `Spinner` | Loading indicator |
+| `Badge` | Label/status badge |
+| `Submit` | Form submit button wrapper |
+| `Video` | Video player |
+| `Portal` | React portal |
+| `PageBox` | Section-level container with `sectionId` |
+| `TwoColSection` | Pre-built two-column layout |
+| `FormGlassContainer` | Frosted glass form wrapper |
+| `Artifact` | Decorative SVG element |
+| `WysiwygText` | WYSIWYG content renderer |
+
+### Molecules (`design-system/molecules/`)
+
+| Component | Purpose |
+|---|---|
+| `ButtonHref` | Button-styled link |
+| `ButtonTouchable` | Button with click handler |
+| `ButtonSubmit` | Button for form submission |
+| `Accordion` | Collapsible content panels |
+| `ArrowLink` | Link with arrow icon |
+| `Banner` | Alert/promotional banner |
+| `Breadcrumbs` | Navigation breadcrumbs |
+| `Chip` | Tag/filter chip |
+| `ClickableImage` | Image with click interaction |
+| `Countdown` | Timer countdown |
+| `Dropdown` | Dropdown selector |
+| `FancyListItem` | Styled list item |
+| `FaqAccordion` | FAQ-specific accordion |
+| `IconBox` | Icon with background container |
+| `IconCard` | Card with icon header |
+| `Inputs` | Form input variants |
+| `Modal` | Modal dialog |
+| `Pagination` | Page navigation |
+| `Pill` | Pill-style label |
+| `ProgressBar` | Progress indicator |
+| `RatingStars` | Star rating display |
+| `SectionHeader` | Section title + subtitle |
+| `StickyToolbar` | Scroll-sticky toolbar |
+| `Tabs` / `TabsPricing` | Tab navigation |
+| `Tooltip` | Hover tooltip |
+
+### Organisms (`design-system/organisms/`)
+
+| Component | Purpose |
+|---|---|
+| `ActionComponent` | CTA/link action renderer |
+| `DatoText` | Bridges DatoCMS structured text to atoms |
+| `FormBuilder` | Complete form renderer |
+| `RichText` | Rich text content renderer |
+
+---
+
+## Text Component Usage
+
+```tsx
+// TextHeader with named sizes
+<TextHeader size='s'>Heading</TextHeader>
+// -> text-3xl md:text-4xl font-bold
+
+// TextBase with explicit responsive object
+<TextBase size={{ xs: '3xl', md: '4xl' }} weight='bold' color='neutral100' htmlTag='h2'>
+  Custom heading
+</TextBase>
+
+// TextNormal for body copy
+<TextNormal color='neutral80' htmlTag='p'>
+  Body text here
+</TextNormal>
+```
+
+Header size → mobile/desktop:
+`xl` = 8xl/9xl · `l` = 7xl/8xl · `m` = 5xl/6xl · `s` = 3xl/4xl · `xs` = 2xl/3xl · `xxs` = md/lg
+
+## Button System
+
+```tsx
+import { ButtonHref, ButtonTouchable } from 'design-system/molecules/Button'
+
+<ButtonHref href='/pricing' type='primary' size='large'>See pricing</ButtonHref>
+<ButtonTouchable onPress={handleClick} type='secondary' size='small'>Learn more</ButtonTouchable>
+```
+
+Types: `primary` (radical-120 bg), `secondary` (bordered), `tertiary` (neutral-5), `link` (viridian text).
+Each has a `negative` mode for dark backgrounds. Sizes: `large`, `small`.
+
+## DatoText — CMS Bridge
+
+```tsx
+import DatoText from 'design-system/organisms/DatoText'
+
+<DatoText
+  data={structuredTextField}
+  styles={{
+    paragraph: { className: 'mb-sm', noPadding: true },
+    text: { size: { xs: '3xl', md: '4xl' }, weight: 'bold' },
+    strong: { size: { xs: '3xl', md: '4xl' }, weight: 'bold', color: 'radical100' },
+  }}
+/>
+```
+
+---
+
+## Creating New Components
+
+### New Atom
+
+```tsx
+// design-system/atoms/YourAtom/index.tsx
+import cn from 'classnames'
+import colors from 'design-system/mappings/colors'
+import type { BackgroundColors, TextColors } from 'design-system/mappings/types'
+
+type YourAtomProps = {
+  backgroundColor?: BackgroundColors
+  textColor?: TextColors
+  className?: string
+  children: React.ReactNode
+}
+
+const YourAtom = ({
+  backgroundColor = 'neutral5',
+  textColor = 'neutral100',
+  className,
+  children
+}: YourAtomProps) => (
+  <div className={cn(colors.backgrounds[backgroundColor], colors.textColors[textColor], 'rounded-lg p-md', className)}>
+    {children}
+  </div>
+)
+
+export default YourAtom
+```
+
+### New Molecule
+
+Compose existing atoms. Add layout, state, or interaction logic. Never duplicate atom-level styling.
+
+### Story File (Required for Every New Component)
+
+```tsx
+// design-system/atoms/YourAtom/youratom.stories.tsx
+import type { Meta, StoryObj } from '@storybook/nextjs'
+import YourAtom from './index'
+
+const meta: Meta<typeof YourAtom> = {
+  title: 'Atoms/YourAtom',
+  component: YourAtom,
+  tags: ['autodocs'],
+  argTypes: { backgroundColor: { control: 'select' } },
+}
+export default meta
+type Story = StoryObj<typeof YourAtom>
+
+export const Default: Story = { args: { children: 'Realistic content here' } }
+```
+
+**Stories must be updated alongside every component change. Storybook is the design artifact.**
+
+---
+
+## Responsive Patterns
+
+```tsx
+// 12-column grid
+<div className='grid lg:grid-cols-12 gap-lg'>
+  <div className='lg:col-span-6'>Content</div>
+  <div className='lg:col-span-6'>Media</div>
+</div>
+
+// Progressive section spacing
+<section className='py-2xl sm:py-3xl lg:py-4xl'>
+
+// Standard container
+<div className='md:container px-lg md:px-0'>
+```
+
+---
+
+## Key Constraints
+
+- **Atomic hierarchy:** atoms < molecules < organisms. No circular dependencies.
+- **Design system isolation:** No imports from `components/Cms/` or `lib/api/` inside `design-system/`.
+- **Token-first:** All colors, shadows, z-index from tokens. No hardcoded hex/rgb.
+- **Tailwind-first for layout:** No `.css` files for layout.
+
+## Common Mistakes
+
+- Hardcoding colors (`text-[#FF355E]`) instead of token classes (`text-radical-100`)
+- Creating a new text component instead of using `TextBase`/`TextHeader`/`TextNormal`
+- Using pixel spacing (`p-[16px]`) instead of token spacing (`p-sm`)
+- Forgetting to update or add stories when changing a component
+- Importing from `@factorialco/f0-react` — unused in this project
+
+---
+
+## Validation
+
+- No hardcoded hex/rgb colors, pixel spacing, or inline styles.
+- Design system components reused — don't reinvent `TextHeader` or `ButtonHref`.
+- **Every modified component has a story update. Every new component has a new story.**
+- **All stories pass a11y checks in Storybook.**
+- Test at 375px, 768px, 1440px. Test with Spanish copy for overflow.
+- `pnpm lint` and `pnpm format <changed-files>` from `webpage/`.

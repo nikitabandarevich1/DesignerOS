@@ -1,0 +1,154 @@
+---
+name: release-notes
+preamble-tier: 2
+version: 1.0.0
+description: |
+  Generate well-formatted release notes for merged PRs or sets of changes to the
+  Factorial webpage. Summarizes changes in plain language for non-technical audiences
+  (content editors, marketers, product managers). Use after shipping a feature or
+  batch of improvements.
+allowed-tools:
+  - Bash
+  - Read
+  - Write
+triggers:
+  - release notes
+  - what did we ship
+  - write release notes
+  - summarize this PR
+  - changelog
+  - what changed
+
+---
+
+{{PREAMBLE}}
+
+# Release Notes
+
+Generate release notes for Factorial webpage changes. The audience is non-technical:
+content editors, marketers, and PMs who need to understand what changed and what they
+can now do — not how it was built.
+
+---
+
+## Gathering the Changes
+
+### From a PR
+
+```bash
+# Get the PR diff summary
+gh pr view <PR_NUMBER> --json title,body,files
+
+# Get commit messages
+gh pr view <PR_NUMBER> --json commits --jq '.commits[].messageHeadline'
+```
+
+### From recent commits on main
+
+```bash
+git log --oneline --since="1 week ago" origin/main
+```
+
+### From staged/unstaged changes
+
+```bash
+git diff --stat HEAD
+git log --oneline origin/main..HEAD
+```
+
+---
+
+## Writing the Notes
+
+### Rules
+
+1. **Lead with what changed for users/editors** — not what was coded
+2. **Group by category** — new features first, then improvements, then fixes
+3. **One sentence per item** — if you need more, it's two items
+4. **No technical jargon** — "Added a new hero section type" not "Implemented DatoCMS block registration for HeroVariantB"
+5. **If it's invisible to users** — skip it or put it in a "Technical" section at the bottom
+6. **Name the section/page** — "on the Pricing page" is more useful than "in the app"
+
+### Categories
+
+| Category | When to use |
+|----------|-------------|
+| **New** | Net new capability that wasn't possible before |
+| **Improved** | Existing thing works better, looks better, or is easier to use |
+| **Fixed** | Something that was broken now works |
+| **Content** | Copy or media changes without code changes |
+| **Technical** | Infrastructure, performance, or DX improvements invisible to editors |
+
+---
+
+## Output Format
+
+```markdown
+# Webpage Release Notes — [Date]
+
+## New
+- **[Feature name]:** [What it does and where]. [Any action needed from editors?]
+
+## Improved  
+- **[Page or component]:** [What's better and how users/editors benefit.]
+
+## Fixed
+- **[Issue description]:** [Short description of what was broken and is now working.]
+
+## Technical (developer notes)
+- [Internal improvement, no editor action needed]
+
+---
+*Released by [name] · [branch or PR link]*
+```
+
+---
+
+## Saving Release Notes
+
+```bash
+mkdir -p ~/.designeros/projects/webpage-releases
+# Save as YYYY-MM-DD.md
+```
+
+---
+
+## Editor-Action Callouts
+
+If any change requires content editor action (new field in DatoCMS, required content
+to fill in, behavior that changes for existing entries), call it out explicitly:
+
+```
+⚠️ **Editor action required:** [What they need to do, where, by when]
+```
+
+---
+
+## Example
+
+**Raw commits:**
+- `feat: add FAQ accordion section to datocms`
+- `fix: hero image cropping on mobile`
+- `chore: upgrade framer-motion to 11.x`
+- `feat: add es-MX locale support to pricing page`
+
+**Release notes:**
+
+```markdown
+# Webpage Release Notes — 2026-05-06
+
+## New
+- **FAQ Section:** Content editors can now add an FAQ accordion to any page via DatoCMS.
+  Available under "Add Section → FAQ Accordion".
+- **Mexico locale:** The Pricing page is now available in Spanish for Mexico (es-MX).
+
+## Fixed
+- **Hero images on mobile:** Images on hero sections were cropping incorrectly on phones.
+  This is now fixed across all hero section types.
+
+## Technical
+- Updated animation library to latest version (no visible changes).
+
+---
+*Released by Nikita · PR #4821*
+```

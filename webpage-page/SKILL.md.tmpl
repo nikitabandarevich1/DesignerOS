@@ -1,0 +1,205 @@
+---
+name: webpage-page
+preamble-tier: 3
+version: 1.0.0
+description: |
+  Create and modify pages in the Factorial webpage project. Use when building
+  standalone pages, landing pages, campaigns, or modifying routing, layouts,
+  metadata, and ISR configuration. (designeros)
+allowed-tools:
+  - Bash
+  - Read
+  - Edit
+  - Write
+  - Grep
+  - Glob
+triggers:
+  - new page
+  - landing page
+  - campaign page
+  - page metadata
+  - isr revalidation
+  - url rewrite
+---
+
+{{PREAMBLE}}
+
+# Webpage Page Creation & Modification
+
+## Purpose
+
+Guide creation and modification of pages in `webpage/app/[locale]/`. Covers routing,
+layout selection, metadata, ISR, data fetching, i18n, and the server/client split.
+
+---
+
+## Route Groups
+
+| Route Group | Chrome Provided | When to Use |
+|---|---|---|
+| `(full-layout)` | TopMenu + Footer + Chat | Standard marketing pages |
+| `(demo)` | None | Demo request flows |
+| `(split-intention)` | Minimal | Discovery/qualification pages |
+| Direct under `[locale]/` | None | Campaigns, custom landing pages |
+
+---
+
+## Standard Procedure
+
+### Step 1: Choose the Route Group
+
+Based on layout chrome needed (see table above).
+
+### Step 2: `page.tsx` (Server Component)
+
+```tsx
+import type { Metadata } from 'next'
+import type { AppPageProps } from 'app/[locale]/types/pageProps'
+import { findTldByLocale } from 'lib/findTld'
+import { commonPageProps } from 'lib/pagesConfig/cms/dynamicComponentProps'
+import { getMetadata } from 'app/[locale]/lib/getMetadata'
+import { getImperativeIntl } from 'lib/getImperativeIntl'
+import { notFound } from 'next/navigation'
+import YourContent from './components/YourContent'
+
+export const revalidate = 1800
+
+export async function generateMetadata(props: AppPageProps): Promise<Metadata> {
+  const { locale } = await props.params
+  const tld = findTldByLocale(locale)
+  if (!tld) notFound()
+  const intl = getImperativeIntl(tld)
+  return getMetadata({
+    tld,
+    metaObject: {
+      title: intl.formatMessage({ defaultMessage: 'Your Page Title' }),
+      description: intl.formatMessage({ defaultMessage: 'Your page description.' })
+    }
+  })
+}
+
+export default async function YourPage(props: AppPageProps) {
+  const params = await props.params
+  const { locale } = params
+  const tld = findTldByLocale(locale)
+  if (!tld) notFound()
+  return <YourContent {...commonPageProps(locale)} />
+}
+```
+
+### Step 3: Client Component
+
+```tsx
+'use client'
+import { useFactorialContext } from 'lib/factorialContext'
+import { useIntl } from 'react-intl'
+import PageBox from 'design-system/atoms/PageBox'
+
+const YourContent = ({ locale }: { locale: string }) => {
+  const { isoCountryCode } = useFactorialContext()
+  const intl = useIntl()
+  return (
+    <main>
+      <PageBox>
+        <h1>{intl.formatMessage({ defaultMessage: 'Your page heading' })}</h1>
+      </PageBox>
+    </main>
+  )
+}
+export default YourContent
+```
+
+### Step 4: Layout (If Outside `(full-layout)`)
+
+```tsx
+import { getDatoTopMenuFooter } from 'lib/api/cms'
+import Layout from 'components/layout'
+
+const layoutData = await getDatoTopMenuFooter(tld.datoLocale, false, host)
+return (
+  <Layout {...commonLayoutProps(layoutData, locale)}>
+    <YourContent {...commonPageProps(locale)} />
+  </Layout>
+)
+```
+
+### Step 5: Localized URL Rewrites (If Needed)
+
+Add entries to `webpage/rewrites.js` for localized slugs (e.g. `/solicitar-demo` for Spanish).
+
+---
+
+## Standalone Page Patterns
+
+### Dictionary-Based i18n (Campaigns)
+
+For bulk page-specific content not from DatoCMS:
+
+```tsx
+// language/index.ts
+const dictionaries = {
+  en: () => import('./dictionaries/en.json').then((m) => m.default),
+  es: () => import('./dictionaries/es.json').then((m) => m.default),
+  // ...
+}
+export const getDictionary = async (locale: Locale) => { ... }
+
+// In page.tsx
+const translations = await getDictionary(locale)
+return <YourContent translations={translations} />
+```
+
+Use `intl.formatMessage()` for short UI strings (buttons, labels).
+Use dictionaries for campaign copy, report sections, bulk page content.
+
+### Locale/Country Gating
+
+```tsx
+if (!['br', 'pt'].includes(tld.isoCountryCode)) notFound()
+```
+
+### Code Splitting Below-the-Fold
+
+```tsx
+import dynamic from 'next/dynamic'
+const BenefitsSection = dynamic(() => import('./components/BenefitsSection'))
+```
+
+---
+
+## Checklist
+
+1. Route group chosen based on layout needs
+2. `page.tsx` is an async server component
+3. `export const revalidate = 1800` set
+4. `generateMetadata()` using `getMetadata()` helper
+5. `AppPageProps` as the page prop type
+6. `findTldByLocale(locale)` + `notFound()` guard
+7. `commonPageProps(locale)` passed to child components
+8. Nav/footer fetched via `getDatoTopMenuFooter()` if outside `(full-layout)`
+9. URL rewrites added if localized slugs are needed
+
+---
+
+## Key Constraints
+
+- `page.tsx` must be a **server component** — no `'use client'`
+- Always `await props.params` and `await props.searchParams` (Next.js 15 Promises)
+- Use `getImperativeIntl(tld)` for server-side translated strings
+- Use `useIntl()` + `intl.formatMessage()` in client components — **never** `<FormattedMessage>`
+- Never hardcode domains/hosts — resolve from `getHostByTld(tld)` or `getCleanHostByTld(tld)`
+
+## Common Mistakes
+
+- `'use client'` on `page.tsx`
+- Forgetting `await props.params`
+- Missing `revalidate` export
+- `i18n.t()` or `<FormattedMessage>` instead of `intl.formatMessage()`
+- Building custom metadata objects instead of using `getMetadata()`
+
+## Validation
+
+- Page renders at `https://webpage-us.local.factorial.dev` with `pnpm dev`
+- Test with en-US + es-ES (Spanish is ~20% longer)
+- `notFound()` fires for invalid locales and missing data
+- `pnpm lint` and `pnpm format <changed-files>` from `webpage/`

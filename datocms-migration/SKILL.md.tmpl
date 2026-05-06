@@ -1,0 +1,185 @@
+---
+name: datocms-migration
+preamble-tier: 3
+version: 1.0.0
+description: |
+  Create, edit, and test DatoCMS schema migration scripts for the Factorial
+  webpage. Use when adding or modifying DatoCMS models, fields, blocks, or any
+  schema change requiring a migration file. Also covers debugging migration
+  failures and promoting migrations to production. (designeros)
+allowed-tools:
+  - Bash
+  - Read
+  - Edit
+  - Write
+  - Grep
+  - Glob
+triggers:
+  - datocms migration
+  - schema migration
+  - new datocms model
+  - new datocms field
+  - migration script
+---
+
+{{PREAMBLE}}
+
+# DatoCMS Schema Migrations
+
+Guide for creating, testing, and deploying DatoCMS schema migration scripts.
+
+---
+
+## When to use
+
+- Creating new DatoCMS models, blocks, or fields
+- Modifying existing schema (adding enum values, changing validators, appearances)
+- Debugging a failing migration script
+- Promoting a tested migration to production
+
+**Not for:** pure content editing (use the DatoCMS UI), or frontend component
+work with no schema change (use `/webpage-cms-component`).
+
+---
+
+## Key References
+
+| Topic | Location |
+|---|---|
+| Migration files | `webpage/lib/datoCms/migrations/` |
+| Migration utilities | `webpage/lib/datoCms/migrations/utils/` |
+| Project migration docs | `webpage/docs/datocms/migrations.md` |
+
+---
+
+## Running the CLI
+
+`@datocms/cli` is a local dependency. Always run from `webpage/`:
+
+```bash
+pnpm exec datocms <command> --api-token=<TOKEN>
+```
+
+API token: `DATOCMS_FULL_ACCESS_KEY` from `.envrc.localdev_secrets`.
+
+---
+
+## Standard Procedure
+
+### Step 1: Scaffold
+
+**Option A: Manual (most common)**
+```bash
+pnpm exec datocms migrations:new '<description>' --ts --api-token=<TOKEN>
+```
+
+**Option B: Autogenerate from sandbox diff**
+```bash
+pnpm exec datocms migrations:new '<description>' --ts --autogenerate=<sandbox>:<source-env> --api-token=<TOKEN>
+```
+
+### Step 2: Write the Migration
+
+```typescript
+import { Client } from '@datocms/cma-client'
+
+export default async function (client: Client) {
+  console.log('Create model "YourModel" (`your_model`)')
+  const model = await client.itemTypes.create({
+    name: 'YourModel',
+    api_key: 'your_model',
+    collection_appearance: 'table',
+  }, { skip_menu_item_creation: true })
+
+  console.log('Create field "Title" (`title`)')
+  await client.fields.create(model.id, {
+    label: 'Title',
+    field_type: 'string',
+    api_key: 'title',
+    validators: { required: {} },
+    appearance: { addons: [], editor: 'single_line', parameters: { heading: true } },
+  })
+}
+```
+
+**Import:** Always use `@datocms/cma-client`. Do NOT use `@datocms/cma-client-node`.
+
+**Base fields for every new CMS section model:**
+- `internal_title` (string, required, unique) — editorial-only
+- `section_id` (string, required) — HTML `id` for anchor links
+- `layout` (string) — visual variant selector
+
+**Localized fields — include ALL locales:**
+```typescript
+default_value: { en: false, es: null, fr: null, de: null, it: null, pt: null,
+  'pt-BR': null, 'en-GB': null, 'es-MX': null, ca: null, pl: null, 'en-ZA': null, 'en-ke': null }
+```
+
+**Adding to sections block:** Update the `sections` field on `sections_block` to include the new model's ID.
+
+### Step 3: Test
+
+```bash
+# Fresh sandbox
+pnpm exec datocms migrations:run --destination=<sandbox-name> --api-token=<TOKEN>
+
+# Re-test after editing (destroy first)
+pnpm exec datocms environments:destroy <sandbox-name> --api-token=<TOKEN>
+pnpm exec datocms migrations:run --destination=<sandbox-name> --api-token=<TOKEN>
+```
+
+Point local webpage to sandbox via `.envrc.personal`.
+
+### Step 4: Promote to Production
+
+1. Notify `#team-growth-marketing` with date/time
+2. Enable maintenance: `pnpm exec datocms maintenance:on --api-token=<TOKEN>`
+3. Run: `pnpm exec datocms migrations:run --destination=new-main --fast-fork --api-token=<TOKEN>`
+4. Promote: `pnpm exec datocms environments:promote <sandbox-name> --api-token=<TOKEN>`
+5. Disable maintenance: `pnpm exec datocms maintenance:off --api-token=<TOKEN>`
+6. Notify channel
+
+---
+
+## Critical Gotchas
+
+### Missing locale keys destroy data
+
+When updating a localized field, missing locale keys = DatoCMS **deletes those locales permanently**.
+**Always include ALL locales in update payloads for localized fields.**
+
+### Block IDs are environment-scoped
+
+Block IDs from one environment cannot be used in another. Strip `id` and `meta` from block envelopes when copying across environments.
+
+### INVALID_LOCALES cascade
+
+DatoCMS validates ALL locale-hash fields on PUT, not just changed ones. Normalize all locale-hash fields when fixing locale errors.
+
+### section_id regex trips unrelated updates
+
+The `section_id` field has a regex constraint (`^[A-Za-z0-9_-]+$`). Dirty pre-existing data will reject even unrelated field updates.
+
+### Pagination with nested records
+
+`nested: true` caps at 30 per page. Always use `listPagedIterator`.
+
+---
+
+## Migration Utilities (`utils/`)
+
+| Utility | Purpose |
+|---|---|
+| `resilientUpdate.ts` | Wraps `client.items.update()` with retry logic for 422 errors |
+| `localization.ts` | Helpers for constructing locale hashes across all locales |
+| `blocks.ts` | Block tree traversal (caveat: only follows first locale path) |
+| `formMigration.ts` | Form-specific migration helpers |
+
+---
+
+## Validation
+
+- Run migration in a fresh sandbox, verify schema in DatoCMS UI
+- Point local webpage to sandbox, verify site renders
+- Check `schema_migration` model to confirm migration was recorded
+- `pnpm dev` against sandbox to catch frontend breakage

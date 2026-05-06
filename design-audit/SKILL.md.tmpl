@@ -1,0 +1,275 @@
+---
+name: design-audit
+preamble-tier: 3
+version: 1.0.0
+description: |
+  Multi-lens design audit for any Factorial webpage component or page. Applies
+  visual quality, animation, performance, locale, and accessibility lenses
+  simultaneously and outputs a single combined report with summary. Use when
+  something looks or feels off, before a PR, or as a design health check.
+allowed-tools:
+  - Read
+  - Bash
+  - Write
+triggers:
+  - design audit
+  - something looks off
+  - review this design
+  - does this look right
+  - design health check
+  - audit this
+  - before PR review
+  - visual audit
+
+---
+
+{{PREAMBLE}}
+
+# /design-audit — Multi-Lens Design Audit
+
+Applies multiple lenses to a component or page and produces a single combined report.
+Fast by default — you can dive deep into any lens after seeing the summary.
+
+---
+
+## Step 1 — What Are We Auditing?
+
+Ask:
+> "What are we auditing? (component name, page URL, or paste the code)"
+
+Then ask which lenses to apply — show the list and let them choose,
+or type "all" for the full audit:
+
+```
+Lenses available:
+
+  [A] Visual quality   — spacing, color, typography, hierarchy
+  [B] Animation        — should it animate, does it animate correctly
+  [C] Performance      — transform/opacity only, will-change, bundle impact
+  [D] Locale           — Spanish text overflow, RTL readiness, i18n
+  [E] Accessibility    — keyboard, focus, contrast, screen reader
+
+Type letters to select (e.g. "A C D") or "all" for everything.
+```
+
+Default if no response: run all lenses.
+
+---
+
+## Step 2 — Apply Each Lens
+
+Run each selected lens. Keep each section tight — flag issues only, don't narrate
+things that are fine.
+
+---
+
+### Lens A: Visual Quality
+
+Check against Factorial design standards:
+
+**Spacing & rhythm**
+- Consistent spacing scale (Tailwind scale — no magic px values)
+- Section padding consistent with adjacent sections
+- Adequate whitespace — content breathes, nothing feels cramped
+
+**Color**
+- Brand colors used via token props / mappings (not direct Tailwind color classes)
+- `radical` for primary CTAs only — not decorative use
+- Sufficient contrast on all text (WCAG AA: 4.5:1 for body, 3:1 for large text)
+
+**Typography**
+- DM Sans only — no system font fallback anywhere
+- Design system text components used (`TextHeader`, `TextNormal`, `TextBase`, `TextCaption`)
+- Heading hierarchy makes sense (H1 → H2 → H3, not skipped)
+- Line heights appropriate (tight `1.05–1.15` for large headings, loose `1.6–1.8` for body)
+
+**Visual hierarchy**
+- Is there a clear primary focus point?
+- Does the eye know where to go next?
+- Is the CTA prominent enough?
+
+**Output format — issues only:**
+
+| Element | Issue | Severity | Fix |
+|---------|-------|----------|-----|
+| ... | ... | 🔴 High / 🟡 Medium / 🟢 Low | ... |
+
+---
+
+### Lens B: Animation
+
+Apply the animation decision framework:
+
+**Is it animated?**
+- Yes → evaluate if it should be and if it's done correctly
+- No → evaluate if it should be
+
+**If animated — correctness check:**
+- Easing: should be `cubic-bezier(0.23, 1, 0.32, 1)` or similar — not built-in `ease`
+- Duration: within budget (reveals 0.18–0.35s, micro-interactions 0.12–0.22s)
+- Initial state: `scale(0.95)` not `scale(0)` — never appear from nothing
+- Hardware acceleration: only `transform` + `opacity` animated
+- Framer Motion `x`/`y` props: if present, flag as not hardware-accelerated
+- Reduced motion: `MotionConfig` or `prefers-reduced-motion` handled?
+- Loop: any looping animations that can't be paused?
+
+**If not animated — should it be?**
+Apply the 4 reasons: reveal, confirm action, guide attention, spatial continuity.
+If none apply → correct to leave it static.
+
+**Output:**
+
+| Element | Finding | Severity | Recommendation |
+|---------|---------|----------|----------------|
+| ... | ... | 🔴/🟡/🟢 | ... |
+
+---
+
+### Lens C: Performance
+
+**Animation performance:**
+- [ ] Only `transform` and `opacity` are animated
+- [ ] No `transition: all` present
+- [ ] `will-change` used only on heavy scroll-animated elements (not sprinkled everywhere)
+- [ ] GSAP triggers cleaned up on unmount
+
+**Render performance:**
+- [ ] No unnecessary `'use client'` directives (server components where possible)
+- [ ] Images use Next.js `<Image>` with correct `width`/`height` or `fill`
+- [ ] No layout shift on image load
+- [ ] Fonts not blocking render
+
+**Bundle:**
+- [ ] Large libraries (GSAP, Lottie) not imported in server components
+- [ ] `next/dynamic` used for below-fold heavy components
+
+**Output:**
+
+| Finding | Impact | Fix |
+|---------|--------|-----|
+| ... | 🔴/🟡/🟢 | ... |
+
+---
+
+### Lens D: Locale
+
+**Spanish (es-ES) — most common failure:**
+- Spanish is ~20% longer than English — check all text containers for overflow
+- Button labels: do they wrap or truncate in Spanish?
+- Headlines: do they break at good points in Spanish?
+- Navigation items: do they overflow their containers?
+
+**Other locales:**
+- Is the page guarded with `findTldByLocale()` + `notFound()` for unsupported TLDs?
+- Are there hardcoded English strings that bypass `intl.formatMessage()`?
+- Date/number formatting: using `intl` formatters, not hardcoded?
+
+**Output:**
+
+| String / Element | Issue | Locale | Fix |
+|------------------|-------|--------|-----|
+| ... | ... | es-ES | ... |
+
+---
+
+### Lens E: Accessibility
+
+**Keyboard navigation:**
+- [ ] All interactive elements reachable by Tab key
+- [ ] Logical tab order (matches visual order)
+- [ ] No keyboard traps (dialogs can be closed with Esc)
+- [ ] Skip-to-content link present on pages
+
+**Focus:**
+- [ ] Visible focus ring on all interactive elements
+- [ ] Never `outline: none` without a custom focus style replacement
+- [ ] Focus ring uses brand color, not browser default (preferably)
+
+**Screen reader:**
+- [ ] All images have meaningful `alt` text (not `alt=""` unless decorative)
+- [ ] Buttons have accessible labels (not just icon-only without `aria-label`)
+- [ ] Headings form a logical hierarchy
+- [ ] Interactive state changes announced (e.g. accordion open/closed)
+
+**Color contrast:**
+- [ ] Body text: 4.5:1 minimum
+- [ ] Large text (18px+ bold or 24px+ regular): 3:1 minimum
+- [ ] UI components (buttons, inputs): 3:1 minimum
+
+**Output:**
+
+| Element | Issue | WCAG criterion | Fix |
+|---------|-------|----------------|-----|
+| ... | ... | ... | ... |
+
+---
+
+## Step 3 — Combined Report
+
+After all lenses, output a single report:
+
+```markdown
+## Design Audit Report — [Component / Page]
+**Date:** [today]
+**Lenses applied:** [list]
+
+---
+
+### Summary
+
+**Overall health:** 🔴 Needs work / 🟡 Minor issues / 🟢 Ship-ready
+
+Top 3 issues to fix before shipping:
+1. [most critical]
+2. [second]
+3. [third]
+
+Quick wins (< 30 min each):
+- [easy fix 1]
+- [easy fix 2]
+
+---
+
+### Lens A: Visual Quality
+[table of findings]
+
+### Lens B: Animation
+[table of findings]
+
+### Lens C: Performance
+[table of findings]
+
+### Lens D: Locale
+[table of findings]
+
+### Lens E: Accessibility
+[table of findings]
+
+---
+
+### Next Steps
+→ Type /dive visual to go deeper on visual quality
+→ Type /dive animation to implement the animation fixes
+→ Type /dive locale to fix Spanish overflow issues
+```
+
+---
+
+## Dive Mode
+
+If the user types `/dive [lens]` after seeing the report:
+
+- **`/dive visual`** → detailed design-engineer review with before/after table and code fixes
+- **`/dive animation`** → run `/animate-this` workflow on the flagged elements
+- **`/dive performance`** → detailed performance investigation with code changes
+- **`/dive locale`** → fix each locale issue one by one with code changes
+- **`/dive accessibility`** → fix each a11y issue with code changes and ARIA additions
+
+---
+
+## Meta Rules
+
+- Report issues only — don't narrate things that are correct.
+- Severity must be honest: 🔴 = blocks shipping, 🟡 = should fix soon, 🟢 = nice to have.
+- Summary comes before details — always lead with "ship-ready / minor issues / needs work".
+- Save report to `~/.designeros/projects/<name>/audit-report.md`

@@ -1,114 +1,102 @@
-# gstack — AI Engineering Workflow
+# DesignerOS — AI Design Workflow for Factorial Webpage
 
-gstack is a collection of SKILL.md files that give AI agents structured roles for
-software development. Each skill is a specialist: CEO reviewer, eng manager,
-designer, QA lead, release engineer, debugger, and more.
+DesignerOS is a personal AI skills toolkit for Nikita, a designer/design engineer at Factorial.
+It gives OpenCode structured roles for working on the `webpage/` Next.js 15 marketing site —
+DatoCMS, Tailwind design tokens, Framer Motion, GSAP, OxFmt, multi-TLD locales, and more.
 
-## Available skills
+Skills are installed globally at `~/.config/opencode/skills/` (or `~/.agents/skills/`).
+Invoke them by name (e.g., `/start`, `/new-section`).
 
-Skills live in `.agents/skills/` (or `~/.claude/skills/gstack/` on Claude Code).
-Invoke them by name (e.g., `/office-hours`).
-
-### Plan-mode reviews
+## Meta-workflow skills (start here)
 
 | Skill | What it does |
 |-------|-------------|
-| `/office-hours` | Start here. Reframes your product idea before you write code. |
-| `/plan-ceo-review` | CEO-level review: find the 10-star product in the request. |
-| `/plan-eng-review` | Lock architecture, data flow, edge cases, and tests. |
+| `/start` | Universal entry point. Describe what you want to build — scopes the brief and routes you to the right workflow. |
+| `/new-section` | End-to-end: build a new CMS-driven section. Scope → implement → polish → QA. |
+| `/new-page` | End-to-end: build a new page or landing page. Route → sections → SEO/i18n → QA. |
+| `/animate-this` | Animation workflow. Decides whether/how to animate, picks the library, implements, QAs. |
+| `/design-audit` | Multi-lens design audit. Visual quality, animation, perf, locale, a11y in one report. |
+| `/ship-it` | Pre-ship gate. Code review → QA → release notes → docs → PR. |
+
+## Webpage development
+
+| Skill | What it does |
+|-------|-------------|
+| `/webpage` | General webpage architecture, conventions, and patterns. |
+| `/webpage-cms-component` | Build a new DatoCMS-driven section component. |
+| `/webpage-page` | Build a new page or route. |
+| `/webpage-design-system` | Work with design tokens, atoms/molecules/organisms, Storybook. |
+| `/datocms-migration` | Create and run DatoCMS schema migrations. |
+
+## Animation & interaction
+
+| Skill | What it does |
+|-------|-------------|
+| `/design-engineer` | Whether and how to add polish — the invisible details that make UI feel great. |
+| `/gsap-scrolltrigger` | GSAP ScrollTrigger — pinning, scrub, scroll-linked animations. |
+| `/nextjs-framer-motion` | Framer Motion in Next.js — whileInView, AnimatePresence, layout transitions. |
+| `/scroll-experience` | Immersive scroll storytelling — parallax, cinematic, Apple-style. |
+| `/premium-frontend-ui` | Premium UI quality — hero architecture, entry sequences, magnetic interactions. |
+
+## Planning & review
+
+| Skill | What it does |
+|-------|-------------|
+| `/office-hours` | Reframe a product idea before writing code. |
 | `/plan-design-review` | Rate each design dimension 0-10, explain what a 10 looks like. |
-| `/plan-devex-review` | DX-mode review: TTHW, magical moments, friction points, persona traces. |
-| `/plan-tune` | Self-tune AskUserQuestion sensitivity per question. |
-| `/autoplan` | One command runs CEO → design → eng → DX review. |
-| `/design-consultation` | Build a complete design system from scratch. |
+| `/autoplan` | Run all reviews (design, eng) in one command. |
+| `/scope-challenge` | Challenge or reframe the brief before committing. |
 
-### Implementation + review
+## Implementation & QA
 
 | Skill | What it does |
 |-------|-------------|
-| `/review` | Pre-landing PR review. Finds bugs that pass CI but break in prod. |
-| `/codex` | Second opinion via OpenAI Codex. Review, challenge, or consult modes. |
+| `/review` | Pre-PR code review. Finds bugs that pass CI but break in prod. |
 | `/investigate` | Systematic root-cause debugging. No fixes without investigation. |
-| `/design-review` | Live-site visual audit + fix loop with atomic commits. |
-| `/design-shotgun` | Generate multiple AI design variants, comparison board, iterate. |
-| `/design-html` | Generate production-quality Pretext-native HTML/CSS. |
-| `/devex-review` | Live developer experience audit (TTHW measured against the real flow). |
+| `/design-review` | Live-site visual audit + fix loop. |
 | `/qa` | Open a real browser, find bugs, fix them, re-verify. |
-| `/qa-only` | Same methodology as /qa but report only — no code changes. |
-| `/scrape` | Pull data from a web page. First call prototypes; codified call runs in ~200ms. |
-| `/skillify` | Codify the most recent successful `/scrape` flow into a permanent browser-skill. |
+| `/qa-only` | Same as /qa but report only — no code changes. |
+| `/benchmark` | Performance regression detection. Core Web Vitals, LCP, ISR config. |
 
-### Release + deploy
+## Release & docs
 
 | Skill | What it does |
 |-------|-------------|
-| `/ship` | Run tests, review, push, open PR. Workspace-aware version queue. |
-| `/land-and-deploy` | Merge the PR, wait for CI and deploy, verify production health. |
-| `/canary` | Post-deploy monitoring loop using the browse daemon. |
-| `/landing-report` | Read-only dashboard for the workspace-aware ship queue. |
-| `/document-release` | Update all docs to match what you just shipped. |
-| `/setup-deploy` | One-time deploy config detection (Fly.io, Render, Vercel, etc.). |
-| `/gstack-upgrade` | Update gstack to the latest version. |
+| `/release-notes` | Generate release notes / changelog from git history. |
+| `/document-release` | Update all docs to match what was just shipped. |
 
-### Operational + memory
+## Browser & tools
+
+| Skill | What it does |
+|-------|-------------|
+| `/browse` | Headless Chromium — real clicks, ~100ms/command. |
+| `/setup-browser-cookies` | Import cookies from your real browser for authenticated testing. |
+
+## Session memory
 
 | Skill | What it does |
 |-------|-------------|
 | `/context-save` | Save working context (git state, decisions, remaining work). |
-| `/context-restore` | Resume from a saved context, even across Conductor workspaces. |
-| `/learn` | Manage what gstack learned across sessions. |
-| `/retro` | Weekly retro with per-person breakdowns and shipping streaks. |
-| `/health` | Code quality dashboard (type checker, linter, tests, dead code). |
-| `/benchmark` | Performance regression detection (page load, Core Web Vitals). |
-| `/benchmark-models` | Cross-model benchmark for skills (Claude, GPT, Gemini side-by-side). |
-| `/cso` | OWASP Top 10 + STRIDE security audit. |
-| `/setup-gbrain` | Set up gbrain for cross-machine session memory sync. |
-| `/sync-gbrain` | Keep gbrain current with this repo's code; refresh agent search guidance in CLAUDE.md. |
+| `/context-restore` | Resume from a saved context. |
+| `/learn` | Manage what DesignerOS has learned across sessions. |
 
-### Browser + agent integration
+## Maintenance
 
 | Skill | What it does |
 |-------|-------------|
-| `/browse` | Headless browser — real Chromium, real clicks, ~100ms/command. |
-| `/open-gstack-browser` | Launch the visible GStack Browser with sidebar + stealth. |
-| `/setup-browser-cookies` | Import cookies from your real browser for authenticated testing. |
-| `/pair-agent` | Pair a remote AI agent (OpenClaw, Codex, etc.) with your browser. |
-
-### Safety + scoping
-
-| Skill | What it does |
-|-------|-------------|
-| `/careful` | Warn before destructive commands (rm -rf, DROP TABLE, force-push). |
-| `/freeze` | Lock edits to one directory. Hard block, not just a warning. |
-| `/guard` | Activate both careful + freeze at once. |
-| `/unfreeze` | Remove directory edit restrictions. |
-| `/make-pdf` | Turn any markdown file into a publication-quality PDF. |
+| `/designeros-upgrade` | Update DesignerOS to the latest version. |
 
 ## Build commands
 
 ```bash
-bun install              # install dependencies
-bun test                 # run free tests (no API spend)
-bun run test:windows     # curated Windows-safe subset (runs on windows-latest)
-bun run build            # generate docs + compile binaries
-bun run gen:skill-docs   # regenerate SKILL.md files from templates
-bun run skill:check      # health dashboard for all skills
+cd ~/code/DesignerOS
+~/.bun/bin/bun run gen:skill-docs          # regenerate SKILL.md files from templates
+PATH="$HOME/.bun/bin:$PATH" ./setup --host opencode --no-prefix   # install/reinstall
 ```
-
-## Platform support
-
-- **macOS** + **Linux**: full test suite supported.
-- **Windows**: curated Windows-safe subset runs on `windows-latest` via the
-  `windows-free-tests` CI job. Setup script (`./setup`) requires Git Bash or
-  MSYS today; native PowerShell support is a future expansion. The `bin/gstack-paths`
-  helper resolves state roots through `CLAUDE_PLUGIN_DATA` / `GSTACK_HOME` so plugin
-  installs work on every platform.
 
 ## Key conventions
 
-- SKILL.md files are **generated** from `.tmpl` templates. Edit the template, not the output.
-- Run `bun run gen:skill-docs --host codex` to regenerate Codex-specific output.
-- The browse binary provides headless browser access. Use `$B <command>` in skills.
-- Safety skills (careful, freeze, guard) use inline advisory prose — always confirm before destructive operations.
-- State paths resolve via `bin/gstack-paths` (sourced via `eval "$(...)"`). Honors `GSTACK_HOME`, `CLAUDE_PLUGIN_DATA`, `CLAUDE_PLANS_DIR`.
-- The `claude` CLI binary resolves via `browse/src/claude-bin.ts` (`Bun.which()` + `GSTACK_CLAUDE_BIN` override). Set `GSTACK_CLAUDE_BIN=wsl` plus `GSTACK_CLAUDE_BIN_ARGS='["claude"]'` to run Claude through WSL on Windows.
+- `SKILL.md` files are **generated** from `.tmpl` templates. Edit the template, not the output.
+- Run `gen:skill-docs` after editing any `.tmpl` file, then re-run `setup`.
+- State lives in `~/.designeros/`.
+- Scope: exclusively the `webpage/` project. Not frontend/, backend/, or mobile/.

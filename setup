@@ -758,10 +758,12 @@ link_opencode_skill_dirs() {
         link_name="$skill_name"
       fi
       target="$skills_dir/$link_name"
-      if [ -L "$target" ] || [ ! -e "$target" ]; then
-        ln -snf "$skill_dir" "$target"
-        linked+=("$link_name")
-      fi
+      # Use real directory + file copy (not symlink) so OpenCode validates
+      # directory name against name: field without resolving symlink targets
+      if [ -L "$target" ]; then rm -f "$target"; fi
+      mkdir -p "$target"
+      cp "$skill_dir/SKILL.md" "$target/SKILL.md"
+      linked+=("$link_name")
     fi
   done
   if [ ${#linked[@]} -gt 0 ]; then

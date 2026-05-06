@@ -751,10 +751,16 @@ link_opencode_skill_dirs() {
     if [ -f "$skill_dir/SKILL.md" ]; then
       skill_name="$(basename "$skill_dir")"
       [ "$skill_name" = "gstack" ] && continue
-      target="$skills_dir/$skill_name"
+      # Respect --no-prefix: strip gstack- prefix when SKILL_PREFIX=0
+      if [ "${SKILL_PREFIX:-1}" -eq 0 ]; then
+        link_name="${skill_name#gstack-}"
+      else
+        link_name="$skill_name"
+      fi
+      target="$skills_dir/$link_name"
       if [ -L "$target" ] || [ ! -e "$target" ]; then
         ln -snf "$skill_dir" "$target"
-        linked+=("$skill_name")
+        linked+=("$link_name")
       fi
     fi
   done
@@ -928,7 +934,15 @@ fi
 # 6c. Install for OpenCode
 if [ "$INSTALL_OPENCODE" -eq 1 ]; then
   mkdir -p "$OPENCODE_SKILLS"
-  create_opencode_runtime_root "$SOURCE_GSTACK_DIR" "$OPENCODE_GSTACK"
+  # When --no-prefix, install root skill under its actual name: field (designeros)
+  if [ "${SKILL_PREFIX:-1}" -eq 0 ]; then
+    _opencode_root_name=$(grep -m1 '^name:' "$SOURCE_GSTACK_DIR/.opencode/skills/gstack/SKILL.md" 2>/dev/null | sed 's/^name:[[:space:]]*//' | tr -d '[:space:]')
+    _opencode_root_name="${_opencode_root_name:-designeros}"
+    _OPENCODE_GSTACK="$OPENCODE_SKILLS/$_opencode_root_name"
+  else
+    _OPENCODE_GSTACK="$OPENCODE_GSTACK"
+  fi
+  create_opencode_runtime_root "$SOURCE_GSTACK_DIR" "$_OPENCODE_GSTACK"
   link_opencode_skill_dirs "$SOURCE_GSTACK_DIR" "$OPENCODE_SKILLS"
   echo "gstack ready (opencode)."
   echo "  browse: $BROWSE_BIN"
